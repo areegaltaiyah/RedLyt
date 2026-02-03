@@ -7,7 +7,15 @@ struct PodcastHostView: View {
     
     var body: some View {
         ZStack {
-            Color("Paleblue").ignoresSafeArea()
+            LinearGradient(
+                gradient: Gradient(colors: [
+                    Color("Upper color").opacity(0.31),
+                    Color.black
+                ]),
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
             
             VStack(spacing: 0) {
                 HStack {
@@ -41,7 +49,7 @@ struct PodcastHostView: View {
                 
                 Spacer()
                 
-                // Audio lines
+                // Audio Visualizati
                 ZStack {
                     HStack(spacing: 4) {
                         Spacer()
@@ -63,7 +71,7 @@ struct PodcastHostView: View {
                     .frame(width: 120)
                     .offset(x: 140)
                 }
-                .frame(height: 300)
+                .frame(height: 400)
                 
                 Spacer()
                 
@@ -73,7 +81,7 @@ struct PodcastHostView: View {
                 } label: {
                     ZStack {
                         Circle()
-                            .fill(isRecording ? Color.red.opacity(0.8) : Color(red: 0.3, green: 0.5, blue: 0.8))
+                            .fill(isRecording ? Color.red.opacity(0.5) : Color("mic color").opacity(0.5))
                             .frame(width: 70, height: 70)
                         Image(systemName: isRecording ? "stop.fill" : "mic.fill")
                             .font(.system(size: 28))
@@ -100,36 +108,104 @@ struct PodcastHostView: View {
 struct AIOrb: View {
     let level: CGFloat
     @State private var pulse = false
+    @State private var shimmer = false
     
     var body: some View {
         ZStack {
             Circle()
                 .fill(
                     RadialGradient(
-                        colors: [Color(red: 0.2, green: 0.4, blue: 0.9).opacity(0.6), .clear],
+                        colors: [
+                            Color("Bubble").opacity(0.36),
+                            .clear
+                        ],
                         center: .center,
-                        startRadius: 60,
-                        endRadius: 120
+                        startRadius: 100,
+                        endRadius: 200
                     )
                 )
-                .frame(width: 240, height: 240)
-                .blur(radius: 30)
+                .frame(width: 281, height: 408)
+                .blur(radius: 40)
+            
+            // Ai Bubble
+            ZStack {
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            colors: [
+                                Color("Bubble").opacity(0.6),
+                                Color("Bubble").opacity(0.4),
+                                Color("Bubble").opacity(0.2)
+                            ],
+                            center: .center,
+                            startRadius: 0,
+                            endRadius: 77
+                        )
+                    )
+                    .frame(width: 154 + level * 20, height: 154 + level * 20)
+                
+                // Border
+                Circle()
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [
+                                Color("Bubble").opacity(0.8),
+                                Color("Bubble").opacity(0.4),
+                                Color("Bubble").opacity(0.6)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 2
+                    )
+                    .frame(width: 154 + level * 20, height: 154 + level * 20)
+                    .blur(radius: 1)
+            }
+            .blur(radius: 8)
             
             Circle()
                 .fill(
                     RadialGradient(
-                        colors: [Color(red: 0.3, green: 0.5, blue: 1.0), Color(red: 0.15, green: 0.3, blue: 0.7)],
+                        colors: [
+                            Color.white.opacity(0.6),
+                            Color.white.opacity(0.3),
+                            .clear
+                        ],
                         center: .center,
                         startRadius: 0,
-                        endRadius: 50
+                        endRadius: 40
                     )
                 )
-                .frame(width: 160 + level * 40, height: 160 + level * 40)
-                .blur(radius: 20)
+                .frame(width: 80, height: 80)
+                .offset(x: -30, y: -30)
+                .blur(radius: 8)
+                .opacity(shimmer ? 0.8 : 0.5)
+            
+            // Scd Highlight
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            Color.white.opacity(0.4),
+                            .clear
+                        ],
+                        center: .center,
+                        startRadius: 0,
+                        endRadius: 25
+                    )
+                )
+                .frame(width: 50, height: 50)
+                .offset(x: 40, y: -15)
+                .blur(radius: 6)
+                .opacity(shimmer ? 0.6 : 0.3)
         }
-        .scaleEffect(pulse ? 1.1 : 1.0)
-        .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: pulse)
-        .onAppear { pulse = true }
+        .scaleEffect(pulse ? 1.05 : 1.0)
+        .animation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true), value: pulse)
+        .animation(.easeInOut(duration: 1.8).repeatForever(autoreverses: true), value: shimmer)
+        .onAppear {
+            pulse = true
+            shimmer = true
+        }
     }
 }
 
