@@ -7,18 +7,16 @@
 
 import SwiftUI
 
-struct MainPageView: View {
+struct MainPageModel: View {
     var body: some View {
         VStack {
             Image(systemName: "globe")
                 .imageScale(.large)
                 .foregroundStyle(.tint)
-            Text("Hello nouf!")
+            Text("Hello, world!")
         }
         .padding()
     }
 }
 
-#Preview {
-    MainPageView()
-}
+
