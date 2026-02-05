@@ -21,6 +21,8 @@ struct FAQView : View {
                         
                         FAQCard(question: " How does the app help me stay awake?                    ",
                                 answer: "The AI uses Active Engagement. Depending on your trip length, it will check in periodically with questions, trivia, or interactive storytelling to keep your brain stimulated and monitor your alertness.")
+                        
+                        
                     }
                     .padding()
                 }
@@ -37,7 +39,15 @@ struct FAQView : View {
                     Button(action: {
                         // Action
                     }) {
-                        Image(systemName: "chevron.left")
+                        Image(systemName: "chevron.left.circle")
+//                            .padding(9)  // ← Adds space inside
+//                                      // .background(Color.white)  // ← White background
+//                                       .clipShape(Circle())  // ← Makes it circular
+//                                       .overlay(
+//                                           Circle()
+//                                               .stroke(Color.black, lineWidth:2)  // ← Black border
+//                                       )
+//
                     }
                 }
             }

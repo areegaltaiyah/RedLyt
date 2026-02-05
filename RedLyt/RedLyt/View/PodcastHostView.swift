@@ -6,93 +6,98 @@ struct PodcastHostView: View {
     @State private var aiAudioLevel: CGFloat = 0.7
     
     var body: some View {
-        ZStack {
-            LinearGradient(
-                gradient: Gradient(colors: [
-                    Color("Upper color").opacity(0.31),
-                    Color.black
-                ]),
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
-            
-            VStack(spacing: 0) {
-                HStack {
-                    Image(systemName: "questionmark.circle")
-                        .font(.system(size: 24))
-                    Spacer()
-                    Text("Podcast Host")
-                        .font(.system(size: 20, weight: .bold, design: .default).width(.expanded))
-                    Spacer()
-                    Image(systemName: "questionmark.circle")
-                        .font(.system(size: 24))
-                        .opacity(0)
-                }
-                .foregroundColor(.white)
-                .padding(.horizontal, 20)
-                .padding(.top, 60)
+        NavigationStack {
+            ZStack {
+                LinearGradient(
+                    gradient: Gradient(colors: [
+                        Color("Upper color").opacity(0.31),
+                        Color.black
+                    ]),
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
                 
-                Spacer()
-                
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("7")
-                        .font(.system(size: 43, weight: .bold, design: .default).width(.expanded))
-                    Text("Minutes")
-                        .font(.system(size: 43, weight: .bold, design: .default).width(.expanded))
-                    Text("left!")
-                        .font(.system(size: 43, weight: .bold, design: .default).width(.expanded))
-                }
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 40)
-                
-                Spacer()
-                
-                // Audio Visualizati
-                ZStack {
-                    HStack(spacing: 4) {
-                        Spacer()
-                        ForEach(0..<8) { i in
-                            AudioBar(height: getHeight(i), level: userAudioLevel)
-                        }
-                    }
-                    .frame(width: 120)
-                    .offset(x: -140)
-                    
-                    AIOrb(level: aiAudioLevel)
-                    
-                    HStack(spacing: 4) {
-                        ForEach(0..<8) { i in
-                            AudioBar(height: getHeight(i), level: userAudioLevel)
+                VStack(spacing: 0) {
+                    HStack {
+                        NavigationLink(destination: FAQView()) {
+                            Image(systemName: "questionmark.circle")
+                                .font(.system(size: 24))
+                                .foregroundColor(.white)
                         }
                         Spacer()
+                        Text("Podcast Host")
+                            .font(.system(size: 20, weight: .bold, design: .default).width(.expanded))
+                        Spacer()
+                        Image(systemName: "questionmark.circle")
+                            .font(.system(size: 24))
+                            .opacity(0)
                     }
-                    .frame(width: 120)
-                    .offset(x: 140)
-                }
-                .frame(height: 400)
-                
-                Spacer()
-                
-                // Mic
-                Button {
-                    isRecording.toggle()
-                } label: {
+                    
+                    .padding(.horizontal, 20)
+                    .padding(.top, 60)
+                    
+                    Spacer()
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("7")
+                            .font(.system(size: 43, weight: .bold, design: .default).width(.expanded))
+                        Text("Minutes")
+                            .font(.system(size: 43, weight: .bold, design: .default).width(.expanded))
+                        Text("left!")
+                            .font(.system(size: 43, weight: .bold, design: .default).width(.expanded))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 40)
+                    
+                    Spacer()
+                    
+                    // Audio Visualizati
                     ZStack {
-                        Circle()
-                            .fill(isRecording ? Color.red.opacity(0.5) : Color("mic color").opacity(0.5))
-                            .frame(width: 70, height: 70)
-                        Image(systemName: isRecording ? "stop.fill" : "mic.fill")
-                            .font(.system(size: 28))
-                            .foregroundColor(.white)
+                        HStack(spacing: 4) {
+                            Spacer()
+                            ForEach(0..<8) { i in
+                                AudioBar(height: getHeight(i), level: userAudioLevel)
+                            }
+                        }
+                        .frame(width: 120)
+                        .offset(x: -140)
+                        
+                        AIOrb(level: aiAudioLevel)
+                        
+                        HStack(spacing: 4) {
+                            ForEach(0..<8) { i in
+                                AudioBar(height: getHeight(i), level: userAudioLevel)
+                            }
+                            Spacer()
+                        }
+                        .frame(width: 120)
+                        .offset(x: 140)
                     }
+                    .frame(height: 400)
+                    
+                    Spacer()
+                    
+                    // Mic
+                    Button {
+                        isRecording.toggle()
+                    } label: {
+                        ZStack {
+                            Circle()
+                                .fill(isRecording ? Color.red.opacity(0.5) : Color("mic color").opacity(0.5))
+                                .frame(width: 70, height: 70)
+                            Image(systemName: isRecording ? "stop.fill" : "mic.fill")
+                                .font(.system(size: 28))
+                                .foregroundColor(.white)
+                        }
+                    }
+                    .scaleEffect(isRecording ? 1.1 : 1.0)
+                    .animation(.easeInOut(duration: 0.2), value: isRecording)
+                    
+                    Spacer()
+                        .frame(height: 60)
                 }
-                .scaleEffect(isRecording ? 1.1 : 1.0)
-                .animation(.easeInOut(duration: 0.2), value: isRecording)
-                
-                Spacer()
-                    .frame(height: 60)
             }
         }
         .preferredColorScheme(.dark)
