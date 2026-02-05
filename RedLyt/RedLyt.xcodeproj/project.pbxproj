@@ -10,9 +10,22 @@
 		1BF86D1D2F2F4551000DF543 /* RedLyt.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RedLyt.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		1B80A4BE2F333C2E00D6D016 /* Exceptions for "RedLyt" folder in "RedLyt" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 1BF86D1C2F2F4551000DF543 /* RedLyt */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		1BF86D1F2F2F4551000DF543 /* RedLyt */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				1B80A4BE2F333C2E00D6D016 /* Exceptions for "RedLyt" folder in "RedLyt" target */,
+			);
 			path = RedLyt;
 			sourceTree = "<group>";
 		};
@@ -256,9 +269,12 @@
 				DEVELOPMENT_TEAM = 5LPD9CL59H;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = RedLyt/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Areeg;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.entertainment";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "We need your location to calculate drive time";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "We need microphone access so you can talk to the AI podcast host while driving.\nWe need microphone access so you can talk to the AI podcast host while driving.\nWe need microphone access so you can talk to the AI podcast host while driving.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "We use speech recognition to understand your responses to the podcast host.\n";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -294,9 +310,12 @@
 				DEVELOPMENT_TEAM = 5LPD9CL59H;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = RedLyt/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Areeg;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.entertainment";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "We need your location to calculate drive time";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "We need microphone access so you can talk to the AI podcast host while driving.\nWe need microphone access so you can talk to the AI podcast host while driving.\nWe need microphone access so you can talk to the AI podcast host while driving.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "We use speech recognition to understand your responses to the podcast host.\n";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

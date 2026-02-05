@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct FAQView : View {
+    @Environment(\.dismiss) private var dismiss
+
     var body: some View {
         NavigationStack {
             // --- Your content started here ---
@@ -14,7 +16,7 @@ struct FAQView : View {
                                 answer: "The app is designed to be 100% voice-activated. The AI will pause automatically whenever it detects you speaking, allowing for a natural, hands-free conversation.")
                         
                         FAQCard(question: "Do I need to sign up?",
-                                answer: "No You can start listening without creating an account. Signing up later helps personalize the experience, but it’s optional.")
+                                answer: "No You can start listening without creating an account. Signing up later helps personalize the experience, but it's optional.")
                         
                         FAQCard(question: "Is it CarPlay compatible?",
                                 answer: "Absolutely. RedLyt is designed to work seamlessly with CarPlay so you can stay focused on the road.")
@@ -30,27 +32,25 @@ struct FAQView : View {
             // --- Your content ended here ---
             
             //-----Navigation Bar-----
-            .navigationTitle("FAQ")
+//   //         .navigationTitle("FAQ").font(.system(size: //43, weight: .bold, design: .default).width(.expanded))
             .navigationBarTitleDisplayMode(.inline)
             
             //ToolBar Chevron Left
             .toolbar {
+                ToolbarItem(placement: .principal){
+                    Text("FAQ")
+                        .font(.headline.weight(.bold).width(.expanded))
+                }
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button(action: {
-                        // Action
+                        dismiss()
                     }) {
-                        Image(systemName: "chevron.left.circle")
-//                            .padding(9)  // ← Adds space inside
-//                                      // .background(Color.white)  // ← White background
-//                                       .clipShape(Circle())  // ← Makes it circular
-//                                       .overlay(
-//                                           Circle()
-//                                               .stroke(Color.black, lineWidth:2)  // ← Black border
-//                                       )
-//
+                        Image(systemName: "chevron.left")
                     }
                 }
             }
+            
+            
         }
     }
 }
