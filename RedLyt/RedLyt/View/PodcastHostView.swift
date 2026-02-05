@@ -11,7 +11,7 @@ struct PodcastHostView: View {
                 LinearGradient(
                     gradient: Gradient(colors: [
                         Color("Upper color").opacity(0.31),
-                        Color.black
+                        Color.redlyteBg
                     ]),
                     startPoint: .top,
                     endPoint: .bottom
@@ -23,7 +23,7 @@ struct PodcastHostView: View {
                         NavigationLink(destination: FAQView()) {
                             Image(systemName: "questionmark.circle")
                                 .font(.system(size: 24))
-                                .foregroundColor(.white)
+                                .foregroundColor(.primary)
                         }
                         Spacer()
                         Text("Podcast Host")
@@ -47,7 +47,7 @@ struct PodcastHostView: View {
                         Text("left!")
                             .font(.system(size: 43, weight: .bold, design: .default).width(.expanded))
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 40)
                     
@@ -85,7 +85,7 @@ struct PodcastHostView: View {
                     } label: {
                         ZStack {
                             Circle()
-                                .fill(isRecording ? Color.red.opacity(0.5) : Color("mic color").opacity(0.5))
+                                .fill(isRecording ? Color.red.opacity(0.5) : Color("MicColor").opacity(0.5))
                                 .frame(width: 70, height: 70)
                             Image(systemName: isRecording ? "stop.fill" : "mic.fill")
                                 .font(.system(size: 28))

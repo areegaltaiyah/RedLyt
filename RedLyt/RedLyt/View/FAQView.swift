@@ -7,7 +7,7 @@ struct FAQView : View {
         NavigationStack {
             // --- Your content started here ---
             ZStack {
-                Color(uiColor: .systemGray6).ignoresSafeArea() // Gives the card-background contrast
+                Color(uiColor: .redlyteBg).ignoresSafeArea() // Gives the card-background contrast
                 
                 ScrollView {
                     VStack(spacing: 16) {
@@ -16,12 +16,12 @@ struct FAQView : View {
                                 answer: "The app is designed to be 100% voice-activated. The AI will pause automatically whenever it detects you speaking, allowing for a natural, hands-free conversation.")
                         
                         FAQCard(question: "Do I need to sign up?",
-                                answer: "No You can start listening without creating an account. Signing up later helps personalize the experience, but it's optional.")
+                                answer: "No, You can start listening without creating an account. We might add Signing up later helps personalize the experience, but it's optional.")
                         
                         FAQCard(question: "Is it CarPlay compatible?",
                                 answer: "Absolutely. RedLyt is designed to work seamlessly with CarPlay so you can stay focused on the road.")
                         
-                        FAQCard(question: " How does the app help me stay awake?                    ",
+                        FAQCard(question: "How does the app help me stay awake?",
                                 answer: "The AI uses Active Engagement. Depending on your trip length, it will check in periodically with questions, trivia, or interactive storytelling to keep your brain stimulated and monitor your alertness.")
                         
                         
@@ -32,22 +32,15 @@ struct FAQView : View {
             // --- Your content ended here ---
             
             //-----Navigation Bar-----
-//   //         .navigationTitle("FAQ").font(.system(size: //43, weight: .bold, design: .default).width(.expanded))
+
             .navigationBarTitleDisplayMode(.inline)
-            
             //ToolBar Chevron Left
             .toolbar {
                 ToolbarItem(placement: .principal){
                     Text("FAQ")
                         .font(.headline.weight(.bold).width(.expanded))
                 }
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: {
-                        dismiss()
-                    }) {
-                        Image(systemName: "chevron.left")
-                    }
-                }
+              
             }
             
             
@@ -66,7 +59,7 @@ struct FAQCard: View {
                 Image(systemName: "questionmark.circle")
                     .font(.title3)
                 Text(question)
-                    .font(.headline)
+                    .font(.headline).foregroundColor(.primary)
             }
             Text(answer)
                 .font(.subheadline)
@@ -74,9 +67,9 @@ struct FAQCard: View {
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white)
-        .cornerRadius(16)
-        .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 4)
+        .background(Color.redlyteBg)
+        .cornerRadius(14)
+        .shadow(color: Color.primary.opacity(0.2), radius: 70, x: 0, y: 4)
     }
 }
 
