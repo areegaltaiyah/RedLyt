@@ -4,6 +4,7 @@ struct PodcastHostView: View {
     @State private var isRecording = false
     @State private var userAudioLevel: CGFloat = 0.5
     @State private var aiAudioLevel: CGFloat = 0.7
+    @Environment(\.sizeCategory) private var sizeCategory
     
     var body: some View {
         NavigationStack {
@@ -23,12 +24,20 @@ struct PodcastHostView: View {
                     
                     VStack(alignment: .leading, spacing: 8) {
                         Text("7")
-                            .font(.system(size: 43, weight: .bold, design: .default).width(.expanded))
+                            .font(.largeTitle.weight(.bold).width(.expanded))
+                            .dynamicTypeSize(.large ... .accessibility3)
+                            .minimumScaleFactor(0.9)
                         Text("Minutes")
-                            .font(.system(size: 43, weight: .bold, design: .default).width(.expanded))
+                            .font(.largeTitle.weight(.bold).width(.expanded))
+                            .dynamicTypeSize(.large ... .accessibility3)
+                            .minimumScaleFactor(0.9)
                         Text("left!")
-                            .font(.system(size: 43, weight: .bold, design: .default).width(.expanded))
+                            .font(.largeTitle.weight(.bold).width(.expanded))
+                            .dynamicTypeSize(.large ... .accessibility3)
+                            .minimumScaleFactor(0.9)
                     }
+                    // Slightly enlarge at standard categories, unchanged at accessibility sizes
+                    .scaleEffect(sizeCategory.isAccessibilityCategory ? 1.0 : 1.06)
                     .foregroundColor(.primary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 40)
@@ -70,7 +79,7 @@ struct PodcastHostView: View {
                                 .fill(isRecording ? Color.red.opacity(0.5) : Color("MicColor").opacity(0.5))
                                 .frame(width: 70, height: 70)
                             Image(systemName: isRecording ? "stop.fill" : "mic.fill")
-                                .font(.system(size: 28))
+                                .font(.title2) // slightly larger than default and dynamic
                                 .foregroundColor(.white)
                         }
                     }
