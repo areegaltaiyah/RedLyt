@@ -11,7 +11,7 @@ import SwiftUI
 struct RedLytApp: App {
     var body: some Scene {
         WindowGroup {
-            MainPageView()
+            PodcastHostView()
         }
     }
 }
