@@ -5,12 +5,9 @@ struct PodcastHostView: View {
     @State private var userAudioLevel: CGFloat = 0.5
     @State private var aiAudioLevel: CGFloat = 0.7
     @State private var isLoading: Bool = false
-
     @Environment(\.sizeCategory) private var sizeCategory
-
-    // ✅ object مسؤول عن الصوت (text to speech)
     private let speechManager = SpeechManager()
-
+    
     var body: some View {
         NavigationStack {
             ZStack {
@@ -23,10 +20,10 @@ struct PodcastHostView: View {
                     endPoint: .bottom
                 )
                 .ignoresSafeArea()
-
+                
                 VStack(spacing: 0) {
                     Spacer()
-
+                    
                     // العداد 7 دقائق
                     VStack(alignment: .leading, spacing: 8) {
                         Text("7")
@@ -46,9 +43,9 @@ struct PodcastHostView: View {
                     .foregroundColor(.primary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 40)
-
+                    
                     Spacer()
-
+                    
                     // Audio Visualization
                     ZStack {
                         HStack(spacing: 4) {
@@ -59,9 +56,9 @@ struct PodcastHostView: View {
                         }
                         .frame(width: 120)
                         .offset(x: -140)
-
+                        
                         AIOrb(level: aiAudioLevel)
-
+                        
                         HStack(spacing: 4) {
                             ForEach(0..<8) { i in
                                 AudioBar(height: getHeight(i), level: userAudioLevel)
@@ -72,13 +69,12 @@ struct PodcastHostView: View {
                         .offset(x: 140)
                     }
                     .frame(height: 400)
-
+                    
                     Spacer()
-
+                    
                     // زر المايك
                     Button {
                         isRecording.toggle()
-                        // هنا لاحقًا نربطه بـ recording الحقيقي
                     } label: {
                         ZStack {
                             Circle()
@@ -91,7 +87,7 @@ struct PodcastHostView: View {
                     }
                     .scaleEffect(isRecording ? 1.1 : 1.0)
                     .animation(.easeInOut(duration: 0.2), value: isRecording)
-
+                    
                     Spacer()
                         .frame(height: 60)
                 }
@@ -112,34 +108,31 @@ struct PodcastHostView: View {
                 }
             }
             .preferredColorScheme(.dark)
-            // ✅ هنا نربط الـ SpeechManager ونخلي الـ AI يبدأ الكلام تلقائي
             .onAppear {
-                // لما الـ AI يخلص كلامه → نشغّل وضع المايك
                 speechManager.onSpeechFinished = {
                     startListening()
                 }
-
-                // أول ما تدخل الصفحة، خلي الـ AI يفتتح الحلقة
+                
                 Task {
                     await callGeminiTest()
                 }
             }
         }
     }
-
+    
     // MARK: - Logic
-
+    
     func getHeight(_ index: Int) -> CGFloat {
         let mid: CGFloat = 4
         let distance = abs(CGFloat(index) - mid)
         return 60 - (distance * 12)
     }
-
+    
     struct AIOrb: View {
         let level: CGFloat
         @State private var pulse = false
         @State private var shimmer = false
-
+        
         var body: some View {
             ZStack {
                 Circle()
@@ -156,7 +149,7 @@ struct PodcastHostView: View {
                     )
                     .frame(width: 281, height: 408)
                     .blur(radius: 40)
-
+                
                 // Ai Bubble
                 ZStack {
                     Circle()
@@ -173,7 +166,7 @@ struct PodcastHostView: View {
                             )
                         )
                         .frame(width: 154 + level * 20, height: 154 + level * 20)
-
+                    
                     // Border
                     Circle()
                         .strokeBorder(
@@ -192,7 +185,7 @@ struct PodcastHostView: View {
                         .blur(radius: 1)
                 }
                 .blur(radius: 8)
-
+                
                 Circle()
                     .fill(
                         RadialGradient(
@@ -210,7 +203,7 @@ struct PodcastHostView: View {
                     .offset(x: -30, y: -30)
                     .blur(radius: 8)
                     .opacity(shimmer ? 0.8 : 0.5)
-
+                
                 // Scd Highlight
                 Circle()
                     .fill(
@@ -238,12 +231,12 @@ struct PodcastHostView: View {
             }
         }
     }
-
+    
     struct AudioBar: View {
         let height: CGFloat
         let level: CGFloat
         @State private var currentHeight: CGFloat = 4
-
+        
         var body: some View {
             RoundedRectangle(cornerRadius: 2)
                 .fill(Color(red: 0.3, green: 0.5, blue: 0.9))
@@ -252,7 +245,7 @@ struct PodcastHostView: View {
                     animate()
                 }
         }
-
+        
         func animate() {
             withAnimation(.easeInOut(duration: 0.15)) {
                 currentHeight = 4 + (height * level)
@@ -262,33 +255,30 @@ struct PodcastHostView: View {
             }
         }
     }
-
-    /// تكلم مع Gemini وخلي الـ AI يتكلم بصوت (بدون سبتايتل)
+    
+    
     func callGeminiTest() async {
         isLoading = true
         let service = GeminiService()
-
+        
         let fullPrompt = Prompts.podcastHostBase
-            + "\n\n"
-            + "Start the show now with a short, friendly first message to the driver."
-
+        + "\n\n"
+        + "Start the show now with a short, friendly first message to the driver."
+        
         do {
             let result = try await service.generateReply(prompt: fullPrompt)
-
-            // ✅ ما نعرض النص، بس نخليه يتكلم
+            
             speechManager.speak(result, language: "en-US")
         } catch {
             print("Gemini error:", error)
         }
-
+        
         isLoading = false
     }
-
-    /// هنا منطق “المايك يشتغل بعد ما الـ AI يخلص كلامه”
+    
     func startListening() {
         isRecording = true
         print("🎤 Mic is now listening...")
-        // لاحقًا: هنا نحط Speech-to-Text فعلي
     }
 }
 

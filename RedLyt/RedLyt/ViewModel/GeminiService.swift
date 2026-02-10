@@ -21,7 +21,7 @@ final class GeminiService {
     
     func generateReply(prompt: String) async throws -> String {
         guard let url = URL(string:
-        "https://generativelanguage.googleapis.com/v1beta/models/\(model):generateContent?key=\(apiKey)"
+                                "https://generativelanguage.googleapis.com/v1beta/models/\(model):generateContent?key=\(apiKey)"
         ) else {
             throw GeminiError.invalidURL
         }

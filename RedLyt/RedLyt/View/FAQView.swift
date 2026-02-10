@@ -2,7 +2,7 @@ import SwiftUI
 
 struct FAQView : View {
     @Environment(\.dismiss) private var dismiss
-
+    
     var body: some View {
         NavigationStack {
             // --- Your content started here ---
@@ -32,7 +32,7 @@ struct FAQView : View {
             // --- Your content ended here ---
             
             //-----Navigation Bar-----
-
+            
             .navigationBarTitleDisplayMode(.inline)
             //ToolBar Chevron Left
             .toolbar {
@@ -40,7 +40,7 @@ struct FAQView : View {
                     Text("FAQ")
                         .font(.headline.weight(.bold).width(.expanded))
                 }
-              
+                
             }
             
             
