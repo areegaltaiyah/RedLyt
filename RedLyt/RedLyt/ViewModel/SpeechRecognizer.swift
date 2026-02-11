@@ -7,6 +7,7 @@
 import Foundation
 import Speech
 import AVFoundation
+import Combine
 
 final class SpeechRecognizer: NSObject, ObservableObject {
     
