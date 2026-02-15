@@ -1,42 +1,27 @@
-//
-//  SpeechManager.swift
-//  RedLyt
-//
-//  Created by Shahd Muharrq on 22/08/1447 AH.
-//
-
 import Foundation
 import AVFoundation
+import Combine
 
-final class SpeechManager: NSObject, AVSpeechSynthesizerDelegate {
+final class SpeechManager: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
 
-    private let synthesizer = AVSpeechSynthesizer()
+    private let synth = AVSpeechSynthesizer()
 
-    var onSpeechFinished: (() -> Void)?
+    override init() {
+        super.init()
+        synth.delegate = self
 
-    override init() {
-        super.init()
-        synthesizer.delegate = self
-    }
+        let session = AVAudioSession.sharedInstance()
+        try? session.setCategory(.playback, mode: .spokenAudio, options: [.duckOthers])
+        try? session.setActive(true)
+    }
 
-    func speak(_ text: String, language: String = "en-US") {
-        if synthesizer.isSpeaking {
-            synthesizer.stopSpeaking(at: .immediate)
-        }
+    func speak(_ text: String, language: String = "en-US") {
+        if synth.isSpeaking { synth.stopSpeaking(at: .immediate) }
 
-        let utterance = AVSpeechUtterance(string: text)
-        utterance.voice = AVSpeechSynthesisVoice(language: language)
-
-        utterance.rate = 0.48
-        utterance.pitchMultiplier = 1.0
-        utterance.volume = 1.0
-
-        synthesizer.speak(utterance)
-    }
-
-      
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer,
-                           didFinish utterance: AVSpeechUtterance) {
-        onSpeechFinished?()
-    }
+        let u = AVSpeechUtterance(string: text)
+        u.voice = AVSpeechSynthesisVoice(language: language)
+        u.rate = 0.48
+        u.volume = 1.0
+        synth.speak(u)
+    }
 }
