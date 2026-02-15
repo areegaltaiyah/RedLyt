@@ -14,10 +14,7 @@ struct PodcastHostView: View {
     @StateObject private var speechManager = SpeechManager()
     @StateObject private var speechRecognizer = SpeechRecognizer()
     
-    struct Message {
-        let role: String
-        let content: String
-    }
+   
     
     var body: some View {
         NavigationStack {

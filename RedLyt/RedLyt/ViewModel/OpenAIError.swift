@@ -32,7 +32,7 @@ final class OpenAIService {
 
     func generateReply(
         system: String,
-        conversationHistory: [PodcastHostView.Message],
+        conversationHistory: [Message],
         userMessage: String
     ) async throws -> String {
         

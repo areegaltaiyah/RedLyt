@@ -1,3 +1,8 @@
+//
+//  CarPlaySceneDelegate.swift
+//  RedLyt
+//
+
 import CarPlay
 import UIKit
 import MediaPlayer
@@ -5,131 +10,283 @@ import MediaPlayer
 class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegate {
     
     var interfaceController: CPInterfaceController?
-    var isRecording = false
-    var minutesLeft = 7
-    var recordingTimer: Timer?
+    var speechRecognizer: SpeechRecognizer?
+    var speechManager: SpeechManager?
+    var conversationHistory: [Message] = []
+    var isConversationActive = false
+    var isLoading = false
+    
+    override init() {
+        super.init()
+        setupRemoteCommandCenter()
+    }
+    
+    // MARK: - CarPlay Connection
     
     func templateApplicationScene(_ templateApplicationScene: CPTemplateApplicationScene, didConnect interfaceController: CPInterfaceController) {
         self.interfaceController = interfaceController
-        showPodcastInterface()
-    }
-
-    // 🎙️ واجهة البودكاست
-    func showPodcastInterface() {
-        let micItem = CPListItem(
-            text: isRecording ? "⏹️ Stop Recording" : "🎙️ Start Interview",
-            detailText: isRecording ? "\(minutesLeft) Minutes remaining" : "\(minutesLeft) Minutes • Tap to begin"
-        )
         
-        // أيقونة ملونة
-        let micImage: UIImage?
-        if isRecording {
-            micImage = UIImage(systemName: "record.circle.fill")?
-                .withTintColor(.systemRed, renderingMode: .alwaysOriginal)
-        } else {
-            micImage = UIImage(systemName: "mic.circle.fill")?
-                .withTintColor(.systemBlue, renderingMode: .alwaysOriginal)
-        }
-        micItem.setImage(micImage)
+        print("🚗 CarPlay connected!")
         
-        micItem.handler = { [weak self] item, completion in
-            self?.toggleRecording()
-            completion() // ✅ إضافة completion
-        }
-
-        let section = CPListSection(items: [micItem])
-        let template = CPListTemplate(title: "Podcast Host", sections: [section])
+        // Initialize speech components (use your existing classes)
+        setupSpeechComponents()
         
-        interfaceController?.setRootTemplate(template, animated: true, completion: nil)
-    }
-    
-    func toggleRecording() {
-        isRecording.toggle()
-        
-        if isRecording {
-            startRecording()
-        } else {
-            stopRecording()
-        }
-    }
-    
-    func startRecording() {
-        print("🎙️ بدء المقابلة...")
-        
-        setupNowPlayingInfo()
+        // Show Now Playing screen
         showNowPlayingScreen()
-        startCountdown()
+        
+        // Start the podcast automatically
+        startPodcastConversation()
     }
     
-    func setupNowPlayingInfo() {
+    func templateApplicationScene(_ templateApplicationScene: CPTemplateApplicationScene, didDisconnect interfaceController: CPInterfaceController) {
+        print("🚗 CarPlay disconnected!")
+        
+        stopPodcastConversation()
+        cleanupSpeechComponents()
+        self.interfaceController = nil
+    }
+    
+    // MARK: - Speech Setup (Uses YOUR existing classes)
+    
+    func setupSpeechComponents() {
+        // Use YOUR existing SpeechRecognizer
+        speechRecognizer = SpeechRecognizer()
+        speechRecognizer?.onUserFinishedSpeaking = { [weak self] userText in
+            guard let self = self, !userText.isEmpty else { return }
+            
+            print("📝 User said: '\(userText)'")
+            self.conversationHistory.append(Message(role: "user", content: userText))
+            
+            Task {
+                await self.getAIResponse(to: userText)
+            }
+        }
+        
+        // Use YOUR existing SpeechManager
+        speechManager = SpeechManager()
+        speechManager?.onFinishedSpeaking = { [weak self] in
+            guard let self = self, self.isConversationActive else { return }
+            
+            print("✅ AI finished speaking - opening mic in 1 second")
+            self.startListeningWithDelay(delay: 1.0)
+        }
+    }
+    
+    func cleanupSpeechComponents() {
+        speechRecognizer?.stopListening()
+        speechManager?.stop()
+        speechRecognizer = nil
+        speechManager = nil
+        conversationHistory = []
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+    }
+    
+    // MARK: - Podcast Conversation
+    
+    func startPodcastConversation() {
+        guard conversationHistory.isEmpty else { return }
+        
+        print("🎙️ Starting AI podcast conversation...")
+        
+        isConversationActive = true
+        
+        // Update Now Playing with "Starting..."
+        updateNowPlayingInfo(status: "Starting conversation...")
+        
+        // Check API key
+        guard ApiKeys.openAI != nil else {
+            print("❌ Missing OpenAI API Key!")
+            updateNowPlayingInfo(status: "Error: Missing API Key")
+            return
+        }
+        
+        // Start with AI greeting
+        Task {
+            await sendInitialGreeting()
+        }
+    }
+    
+    func stopPodcastConversation() {
+        print("⏹️ Stopping podcast conversation...")
+        
+        isConversationActive = false
+        speechRecognizer?.stopListening()
+        speechManager?.stop()
+        
+        updateNowPlayingInfo(status: "Conversation ended")
+    }
+    
+    func sendInitialGreeting() async {
+        isLoading = true
+        updateNowPlayingInfo(status: "AI is thinking...")
+        
+        defer { isLoading = false }
+        
+        // Use YOUR existing OpenAIService
+        let service = OpenAIService()
+        let systemPrompt = Prompts.podcastHostBase
+        let userPrompt = "Start the show with a short, friendly greeting to the driver. Keep it under 20 words."
+        
+        do {
+            let result = try await service.generateReply(
+                system: systemPrompt,
+                conversationHistory: [],
+                userMessage: userPrompt
+            )
+            
+            print("✅ AI Greeting:", result)
+            conversationHistory.append(Message(role: "assistant", content: result))
+            
+            await speakAIResponse(result)
+            
+        } catch {
+            print("❌ Error getting AI greeting:", error)
+            updateNowPlayingInfo(status: "Connection error")
+            
+            // Retry after 3 seconds
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            await sendInitialGreeting()
+        }
+    }
+    
+    func getAIResponse(to userMessage: String) async {
+        guard isConversationActive else { return }
+        
+        isLoading = true
+        updateNowPlayingInfo(status: "AI is thinking...")
+        
+        defer { isLoading = false }
+        
+        // Use YOUR existing OpenAIService
+        let service = OpenAIService()
+        let systemPrompt = Prompts.podcastHostBase
+        
+        do {
+            let result = try await service.generateReply(
+                system: systemPrompt,
+                conversationHistory: conversationHistory,
+                userMessage: userMessage
+            )
+            
+            print("✅ AI Reply:", result)
+            conversationHistory.append(Message(role: "assistant", content: result))
+            
+            // Small delay before speaking
+            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+            
+            await speakAIResponse(result)
+            
+        } catch {
+            print("❌ AI Error:", error)
+            updateNowPlayingInfo(status: "Connection error")
+            
+            // Retry listening after error
+            if isConversationActive {
+                startListeningWithDelay(delay: 2.0)
+            }
+        }
+    }
+    
+    func speakAIResponse(_ text: String) async {
+        print("🔊 AI speaking: '\(text)'")
+        
+        updateNowPlayingInfo(status: "AI is speaking...")
+        
+        await MainActor.run {
+            // Use YOUR existing SpeechManager
+            speechManager?.speak(text, language: "en-US")
+        }
+    }
+    
+    func startListeningWithDelay(delay: TimeInterval = 1.0) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+            guard let self = self else { return }
+            
+            let canStart = self.isConversationActive &&
+                           !self.isLoading &&
+                           !(self.speechManager?.isSpeaking ?? false) &&
+                           !(self.speechRecognizer?.isListening ?? false)
+            
+            guard canStart else {
+                print("⏭️ Can't start listening - conditions not met")
+                return
+            }
+            
+            print("🎤 Opening mic...")
+            self.updateNowPlayingInfo(status: "Listening...")
+            self.speechRecognizer?.startListening()
+        }
+    }
+    
+    // MARK: - Now Playing UI
+    
+    func showNowPlayingScreen() {
+        let nowPlayingTemplate = CPNowPlayingTemplate.shared
+        interfaceController?.setRootTemplate(nowPlayingTemplate, animated: true, completion: nil)
+        
+        print("📺 Now Playing screen displayed")
+    }
+    
+    func updateNowPlayingInfo(status: String) {
         var nowPlayingInfo = [String: Any]()
         
-        nowPlayingInfo[MPMediaItemPropertyTitle] = "Podcast Interview"
+        // Main info
+        nowPlayingInfo[MPMediaItemPropertyTitle] = "Podcast Host"
         nowPlayingInfo[MPMediaItemPropertyArtist] = "AI Host • RedLyt"
-        nowPlayingInfo[MPMediaItemPropertyAlbumTitle] = "\(minutesLeft) Minutes Remaining"
-        nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = 0
-        nowPlayingInfo[MPMediaItemPropertyPlaybackDuration] = TimeInterval(minutesLeft * 60)
-        nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = 1.0
+        nowPlayingInfo[MPMediaItemPropertyAlbumTitle] = status
         
-        if let image = UIImage(systemName: "waveform.circle.fill")?.withTintColor(.systemBlue, renderingMode: .alwaysOriginal) {
+        // Show as "playing"
+        nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = isConversationActive ? 1.0 : 0.0
+        
+        // Artwork - changes based on status
+        let iconName: String
+        let iconColor: UIColor
+        
+        if status.contains("Listening") {
+            iconName = "mic.circle.fill"
+            iconColor = .systemBlue
+        } else if status.contains("speaking") {
+            iconName = "waveform.circle.fill"
+            iconColor = .systemGreen
+        } else if status.contains("thinking") {
+            iconName = "brain.head.profile"
+            iconColor = .systemOrange
+        } else if status.contains("error") || status.contains("Error") {
+            iconName = "exclamationmark.triangle.fill"
+            iconColor = .systemRed
+        } else {
+            iconName = "antenna.radiowaves.left.and.right.circle.fill"
+            iconColor = .systemBlue
+        }
+        
+        if let image = UIImage(systemName: iconName)?.withTintColor(iconColor, renderingMode: .alwaysOriginal) {
             let artwork = MPMediaItemArtwork(boundsSize: CGSize(width: 512, height: 512)) { _ in image }
             nowPlayingInfo[MPMediaItemPropertyArtwork] = artwork
         }
         
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
+        
+        print("📊 Status: \(status)")
     }
     
-    func showNowPlayingScreen() {
-        let nowPlayingTemplate = CPNowPlayingTemplate.shared
-        interfaceController?.pushTemplate(nowPlayingTemplate, animated: true, completion: nil)
-    }
+    // MARK: - Remote Control
     
-    func stopRecording() {
-        print("⏹️ إيقاف المقابلة...")
+    func setupRemoteCommandCenter() {
+        let commandCenter = MPRemoteCommandCenter.shared()
         
-        stopCountdown()
-        minutesLeft = 7
-        isRecording = false
-        
-        MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
-        
-        // ✅ التحقق من وجود templates قبل الـ pop
-        if let templates = interfaceController?.templates, templates.count > 1 {
-            // نحن في شاشة Now Playing، نرجع للرئيسية
-            interfaceController?.popToRootTemplate(animated: true) { [weak self] _, _ in
-                self?.showPodcastInterface()
-            }
-        } else {
-            // نحن بالفعل في الشاشة الرئيسية، نحدثها فقط
-            showPodcastInterface()
+        // Stop button - ends conversation
+        commandCenter.stopCommand.isEnabled = true
+        commandCenter.stopCommand.addTarget { [weak self] _ in
+            self?.stopPodcastConversation()
+            return .success
         }
-    }
-    
-    func startCountdown() {
-        recordingTimer = Timer.scheduledTimer(withTimeInterval: 60.0, repeats: true) { [weak self] timer in
-            guard let self = self, self.isRecording else {
-                timer.invalidate()
-                return
-            }
-            
-            self.minutesLeft -= 1
-            
-            if self.minutesLeft <= 0 {
-                self.stopRecording()
-                return
-            }
-            
-            self.setupNowPlayingInfo()
-        }
-    }
-    
-    func stopCountdown() {
-        recordingTimer?.invalidate()
-        recordingTimer = nil
-    }
-
-    func templateApplicationScene(_ templateApplicationScene: CPTemplateApplicationScene, didDisconnect interfaceController: CPInterfaceController) {
-        stopCountdown()
-        self.interfaceController = nil
+        
+        // Disable other buttons
+        commandCenter.playCommand.isEnabled = false
+        commandCenter.pauseCommand.isEnabled = false
+        commandCenter.nextTrackCommand.isEnabled = false
+        commandCenter.previousTrackCommand.isEnabled = false
+        commandCenter.skipForwardCommand.isEnabled = false
+        commandCenter.skipBackwardCommand.isEnabled = false
     }
 }
