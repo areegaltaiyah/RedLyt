@@ -19,3 +19,12 @@ build/
 # Swift Package Manager
 .build/
 Packages/
+
+# User-specific Xcode files
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+
+# macOS files
+.DS_Store
+**/.DS_Store
