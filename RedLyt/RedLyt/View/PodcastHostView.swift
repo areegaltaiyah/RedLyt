@@ -182,6 +182,7 @@ struct PodcastHostView: View {
                 Task { await startConversation() }
             }
         }
+        .scrollDisabled(true)
     }
     
     func getHeight(_ index: Int) -> CGFloat {
@@ -512,8 +513,45 @@ struct PodcastHostView: View {
             }
         }
     }
+    
+    func callGeminiTest() async {
+        isLoading = true
+        let service = GeminiService()
+        
+        let fullPrompt = Prompts.podcastHostBase
+        + "\n\n"
+        + "Start the show now with a short, friendly first message to the driver."
+        
+        do {
+            let result = try await service.generateReply(prompt: fullPrompt)
+            
+            speechManager.speak(result, language: "en-US")
+        } catch {
+            print("Gemini error:", error)
+        }
+        
+        isLoading = false
+    }
+    
+    func startListening() {
+        isRecording = true
+        print("🎤 Mic is now listening...")
+    }
 }
 
+// Custom Button Style للمايك
+struct MicButtonStyle: ButtonStyle {
+    let isRecording: Bool
+    
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+            .brightness(configuration.isPressed ? -0.1 : 0)
+            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
+    }
+}
+
+// Preview
 #Preview {
     PodcastHostView()
 }
