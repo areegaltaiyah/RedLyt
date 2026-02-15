@@ -4,9 +4,20 @@ struct PodcastHostView: View {
     @State private var isRecording = false
     @State private var userAudioLevel: CGFloat = 0.5
     @State private var aiAudioLevel: CGFloat = 0.7
-    @State private var isLoading: Bool = false
+    @State private var isLoading = false
+    @State private var conversationHistory: [Message] = []
+    @State private var showError = false
+    @State private var errorMessage = ""
+    @State private var isConversationActive = true
+    
     @Environment(\.sizeCategory) private var sizeCategory
-    private let speechManager = SpeechManager()
+    @StateObject private var speechManager = SpeechManager()
+    @StateObject private var speechRecognizer = SpeechRecognizer()
+    
+    struct Message {
+        let role: String
+        let content: String
+    }
     
     var body: some View {
         NavigationStack {
@@ -24,7 +35,6 @@ struct PodcastHostView: View {
                 VStack(spacing: 0) {
                     Spacer()
                     
-                    // العداد 7 دقائق
                     VStack(alignment: .leading, spacing: 8) {
                         Text("7")
                             .font(.largeTitle.weight(.bold).width(.expanded))
@@ -46,7 +56,6 @@ struct PodcastHostView: View {
                     
                     Spacer()
                     
-                    // Audio Visualization
                     ZStack {
                         HStack(spacing: 4) {
                             Spacer()
@@ -57,7 +66,7 @@ struct PodcastHostView: View {
                         .frame(width: 120)
                         .offset(x: -140)
                         
-                        AIOrb(level: aiAudioLevel)
+                        AIOrb(level: aiAudioLevel, isThinking: isLoading)
                         
                         HStack(spacing: 4) {
                             ForEach(0..<8) { i in
@@ -72,21 +81,74 @@ struct PodcastHostView: View {
                     
                     Spacer()
                     
-                    // زر المايك
-                    Button {
-                        isRecording.toggle()
-                    } label: {
-                        ZStack {
-                            Circle()
-                                .fill(isRecording ? Color.red.opacity(0.5) : Color("MicColor").opacity(0.5))
-                                .frame(width: 70, height: 70)
-                            Image(systemName: isRecording ? "stop.fill" : "mic.fill")
+                    if isLoading {
+                        Text("AI is thinking...")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    } else if speechRecognizer.isListening {
+                        VStack(spacing: 4) {
+                            Text("Listening...")
+                                .font(.caption)
+                                .foregroundColor(.blue)
+                            if !speechRecognizer.transcript.isEmpty {
+                                Text(speechRecognizer.transcript)
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal)
+                            }
+                        }
+                    } else if speechManager.isSpeaking {
+                        Text("AI is speaking...")
+                            .font(.caption)
+                            .foregroundColor(.green)
+                    }
+    
+                    ZStack {
+                        Circle()
+                            .fill(getIndicatorColor())
+                            .frame(width: 70, height: 70)
+                        
+                        if isLoading {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        } else {
+                            Image(systemName: getIndicatorIcon())
                                 .font(.title2)
                                 .foregroundColor(.white)
                         }
                     }
                     .scaleEffect(isRecording ? 1.1 : 1.0)
                     .animation(.easeInOut(duration: 0.2), value: isRecording)
+                    .overlay(
+                        Circle()
+                            .strokeBorder(Color.blue, lineWidth: 3)
+                            .frame(width: 80, height: 80)
+                            .scaleEffect(isRecording ? 1.3 : 1.0)
+                            .opacity(isRecording ? 0 : 1)
+                            .animation(
+                                isRecording ?
+                                    .easeOut(duration: 1.0).repeatForever(autoreverses: false) :
+                                    .default,
+                                value: isRecording
+                            )
+                    )
+                    
+                    Button {
+                        toggleConversation()
+                    } label: {
+                        HStack {
+                            Image(systemName: isConversationActive ? "pause.circle.fill" : "play.circle.fill")
+                            Text(isConversationActive ? "Pause Conversation" : "Resume Conversation")
+                        }
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 16)
+                        .background(Color.primary.opacity(0.1))
+                        .cornerRadius(20)
+                    }
+                    .padding(.top, 8)
                     
                     Spacer()
                         .frame(height: 60)
@@ -108,19 +170,19 @@ struct PodcastHostView: View {
                 }
             }
             .preferredColorScheme(.dark)
+            .alert("Error", isPresented: $showError) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(errorMessage)
+            }
             .onAppear {
-                speechManager.onSpeechFinished = {
-                    startListening()
-                }
-                
-                Task {
-                    await callGeminiTest()
-                }
+                DebugHelper.checkAPIKeyStatus()
+                setupSpeechRecognizer()
+                setupSpeechManagerCallbacks()
+                Task { await startConversation() }
             }
         }
     }
-    
-    // MARK: - Logic
     
     func getHeight(_ index: Int) -> CGFloat {
         let mid: CGFloat = 4
@@ -128,8 +190,198 @@ struct PodcastHostView: View {
         return 60 - (distance * 12)
     }
     
+    func getIndicatorColor() -> Color {
+        if isLoading {
+            return Color.orange.opacity(0.5)
+        } else if isRecording {
+            return Color.blue.opacity(0.5)
+        } else if speechManager.isSpeaking {
+            return Color.green.opacity(0.5)
+        } else {
+            return Color("MicColor").opacity(0.5)
+        }
+    }
+    
+    func getIndicatorIcon() -> String {
+        if isRecording {
+            return "waveform"
+        } else if speechManager.isSpeaking {
+            return "speaker.wave.3.fill"
+        } else {
+            return "mic.fill"
+        }
+    }
+    
+    func setupSpeechRecognizer() {
+        speechRecognizer.onUserFinishedSpeaking = { [self] userText in
+            guard !userText.isEmpty else {
+                if isConversationActive {
+                    startListeningWithDelay(delay: 1.5)
+                }
+                return
+            }
+            
+            print("📝 User said: '\(userText)'")
+            conversationHistory.append(Message(role: "user", content: userText))
+            
+            Task {
+                await getAIResponse(to: userText)
+            }
+        }
+    }
+    
+    func setupSpeechManagerCallbacks() {
+        speechManager.onFinishedSpeaking = { [self] in
+            print("✅ AI finished speaking - will start listening in 1 second")
+            if isConversationActive {
+                startListeningWithDelay(delay: 1.0)
+            }
+        }
+    }
+    
+    func toggleConversation() {
+        isConversationActive.toggle()
+        
+        if isConversationActive {
+            print("▶️ Conversation resumed")
+            startListeningWithDelay(delay: 0.5)
+        } else {
+            print("⏸️ Conversation paused")
+            speechRecognizer.stopListening()
+            speechManager.stop()
+            isRecording = false
+        }
+    }
+    
+    func startListeningWithDelay(delay: TimeInterval = 1.0) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            guard isConversationActive && !isLoading && !speechManager.isSpeaking else {
+                print("⏭️ Skipping auto-listen: active=\(isConversationActive) loading=\(isLoading) speaking=\(speechManager.isSpeaking)")
+                return
+            }
+            
+            isRecording = true
+            speechRecognizer.startListening()
+            print("🎤 Auto-started listening...")
+        }
+    }
+    
+    func startConversation() async {
+        guard conversationHistory.isEmpty else { return }
+        
+        guard ApiKeys.openAI != nil else {
+            errorMessage = """
+            Missing OpenAI API Key!
+            
+            Please create Config.plist with your API key.
+            Check the console for detailed instructions.
+            """
+            showError = true
+            return
+        }
+        
+        isLoading = true
+        defer { isLoading = false }
+        
+        let service = OpenAIService()
+        let systemPrompt = Prompts.podcastHostBase
+        let userPrompt = "Start the show with a short, friendly greeting to the driver. Keep it under 20 words."
+        
+        do {
+            let result = try await service.generateReply(
+                system: systemPrompt,
+                conversationHistory: [],
+                userMessage: userPrompt
+            )
+            
+            print("✅ AI Reply:", result)
+            conversationHistory.append(Message(role: "assistant", content: result))
+            await speakAIResponse(result)
+            
+        } catch OpenAIError.missingAPIKey {
+            errorMessage = """
+            Missing OpenAI API Key!
+            
+            Create a Config.plist file with:
+            Key: OPEN_AI_API_KEY
+            Value: Your OpenAI API key
+            """
+            showError = true
+            
+        } catch OpenAIError.badResponse {
+            errorMessage = """
+            Invalid API response.
+            
+            Possible causes:
+            • Invalid API key
+            • API key doesn't have credits
+            • OpenAI service issue
+            
+            Check console for details.
+            """
+            showError = true
+            
+        } catch {
+            print("❌ OpenAI error details:", error)
+            print("❌ Error type:", type(of: error))
+            print("❌ Error description:", error.localizedDescription)
+            
+            errorMessage = """
+            Connection failed: \(error.localizedDescription)
+            
+            Check:
+            • Internet connection
+            • API key is valid
+            • Console logs for details
+            """
+            showError = true
+        }
+    }
+    
+    func getAIResponse(to userMessage: String) async {
+        isLoading = true
+        isRecording = false
+        defer { isLoading = false }
+        
+        let service = OpenAIService()
+        let systemPrompt = Prompts.podcastHostBase
+        
+        do {
+            let result = try await service.generateReply(
+                system: systemPrompt,
+                conversationHistory: conversationHistory,
+                userMessage: userMessage
+            )
+            
+            print("✅ AI Reply:", result)
+            conversationHistory.append(Message(role: "assistant", content: result))
+            
+            // CRITICAL: Add delay before speaking to ensure audio session has switched
+            try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
+            
+            await speakAIResponse(result)
+            
+        } catch {
+            print("❌ OpenAI error:", error)
+            errorMessage = "AI host couldn't respond. Please try again."
+            showError = true
+            
+            if isConversationActive {
+                startListeningWithDelay(delay: 2.0)
+            }
+        }
+    }
+    
+    func speakAIResponse(_ text: String) async {
+        print("🔊 About to speak: '\(text)'")
+        await MainActor.run {
+            speechManager.speak(text, language: "en-US")
+        }
+    }
+    
     struct AIOrb: View {
         let level: CGFloat
+        let isThinking: Bool
         @State private var pulse = false
         @State private var shimmer = false
         
@@ -150,7 +402,6 @@ struct PodcastHostView: View {
                     .frame(width: 281, height: 408)
                     .blur(radius: 40)
                 
-                // Ai Bubble
                 ZStack {
                     Circle()
                         .fill(
@@ -167,7 +418,6 @@ struct PodcastHostView: View {
                         )
                         .frame(width: 154 + level * 20, height: 154 + level * 20)
                     
-                    // Border
                     Circle()
                         .strokeBorder(
                             LinearGradient(
@@ -185,6 +435,8 @@ struct PodcastHostView: View {
                         .blur(radius: 1)
                 }
                 .blur(radius: 8)
+                .opacity(isThinking ? 0.5 : 1.0)
+                .animation(.easeInOut(duration: 0.5), value: isThinking)
                 
                 Circle()
                     .fill(
@@ -204,7 +456,6 @@ struct PodcastHostView: View {
                     .blur(radius: 8)
                     .opacity(shimmer ? 0.8 : 0.5)
                 
-                // Scd Highlight
                 Circle()
                     .fill(
                         RadialGradient(
@@ -221,6 +472,12 @@ struct PodcastHostView: View {
                     .offset(x: 40, y: -15)
                     .blur(radius: 6)
                     .opacity(shimmer ? 0.6 : 0.3)
+                
+                if isThinking {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        .scaleEffect(1.5)
+                }
             }
             .scaleEffect(pulse ? 1.05 : 1.0)
             .animation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true), value: pulse)
@@ -255,34 +512,8 @@ struct PodcastHostView: View {
             }
         }
     }
-    
-    
-    func callGeminiTest() async {
-        isLoading = true
-        let service = GeminiService()
-        
-        let fullPrompt = Prompts.podcastHostBase
-        + "\n\n"
-        + "Start the show now with a short, friendly first message to the driver."
-        
-        do {
-            let result = try await service.generateReply(prompt: fullPrompt)
-            
-            speechManager.speak(result, language: "en-US")
-        } catch {
-            print("Gemini error:", error)
-        }
-        
-        isLoading = false
-    }
-    
-    func startListening() {
-        isRecording = true
-        print("🎤 Mic is now listening...")
-    }
 }
 
-// Preview
 #Preview {
     PodcastHostView()
 }

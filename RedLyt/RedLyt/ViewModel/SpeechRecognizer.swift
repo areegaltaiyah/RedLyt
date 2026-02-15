@@ -1,6 +1,7 @@
 //
 //  SpeechRecognizer.swift
 //  RedLyt
+//
 //  Handles listening to user speech and detecting when they stop talking
 //
 
@@ -23,7 +24,7 @@ final class SpeechRecognizer: NSObject, ObservableObject {
     
     // Silence detection
     private var silenceTimer: Timer?
-    private let silenceThreshold: TimeInterval = 2.0 // Stop after 2 seconds of silence
+    private let silenceThreshold: TimeInterval = 2.0
     
     // Callbacks
     var onUserFinishedSpeaking: ((String) -> Void)?
@@ -58,20 +59,31 @@ final class SpeechRecognizer: NSObject, ObservableObject {
     func startListening() {
         print("🎤 Starting to listen...")
         
-        // Stop any existing session
-        stopListening()
+        // Stop any existing session first
+        if audioEngine.isRunning {
+            print("⚠️ Audio engine already running - stopping it first")
+            stopListening()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                self.actuallyStartListening()
+            }
+            return
+        }
         
-        // Configure audio session
+        actuallyStartListening()
+    }
+    
+    private func actuallyStartListening() {
+        // CRITICAL: Configure audio session for RECORDING
         do {
             let audioSession = AVAudioSession.sharedInstance()
             try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
             try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+            print("✅ Audio session set to RECORD mode")
         } catch {
             print("❌ Audio session setup failed: \(error)")
             return
         }
         
-        // Create recognition request
         recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
         
         guard let recognitionRequest = recognitionRequest else {
@@ -81,25 +93,21 @@ final class SpeechRecognizer: NSObject, ObservableObject {
         
         recognitionRequest.shouldReportPartialResults = true
         
-        // Get the audio input node
         let inputNode = audioEngine.inputNode
+        inputNode.removeTap(onBus: 0)
         
-        // Start recognition task
         recognitionTask = speechRecognizer?.recognitionTask(with: recognitionRequest) { [weak self] result, error in
             guard let self = self else { return }
             
             var isFinal = false
             
             if let result = result {
-                // Update transcript
                 DispatchQueue.main.async {
                     self.transcript = result.bestTranscription.formattedString
                     print("📝 User said: \(self.transcript)")
                 }
                 
-                // Reset silence timer - user is speaking
                 self.resetSilenceTimer()
-                
                 isFinal = result.isFinal
             }
             
@@ -109,13 +117,22 @@ final class SpeechRecognizer: NSObject, ObservableObject {
             }
         }
         
-        // Configure audio format
         let recordingFormat = inputNode.outputFormat(forBus: 0)
-        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { buffer, _ in
-            self.recognitionRequest?.append(buffer)
+        
+        guard recordingFormat.sampleRate > 0 && recordingFormat.channelCount > 0 else {
+            print("❌ Invalid recording format: \(recordingFormat)")
+            return
         }
         
-        // Start audio engine
+        do {
+            try inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] buffer, _ in
+                self?.recognitionRequest?.append(buffer)
+            }
+        } catch {
+            print("❌ Failed to install audio tap: \(error)")
+            return
+        }
+        
         audioEngine.prepare()
         
         do {
@@ -132,28 +149,43 @@ final class SpeechRecognizer: NSObject, ObservableObject {
     func stopListening() {
         print("🛑 Stopping listening...")
         
-        // Cancel silence timer
         silenceTimer?.invalidate()
         silenceTimer = nil
         
-        // Stop audio engine
-        audioEngine.stop()
-        audioEngine.inputNode.removeTap(onBus: 0)
+        if audioEngine.isRunning {
+            audioEngine.inputNode.removeTap(onBus: 0)
+        }
         
-        // End recognition
+        if audioEngine.isRunning {
+            audioEngine.stop()
+        }
+        
         recognitionRequest?.endAudio()
         recognitionRequest = nil
         
-        // Cancel task
         recognitionTask?.cancel()
         recognitionTask = nil
         
         isListening = false
         
-        // Notify that user finished speaking
-        if !transcript.isEmpty {
-            print("✅ User finished speaking: '\(transcript)'")
-            onUserFinishedSpeaking?(transcript)
+        // CRITICAL: Switch audio session back to PLAYBACK mode
+        do {
+            let audioSession = AVAudioSession.sharedInstance()
+            try audioSession.setCategory(.playback, mode: .spokenAudio, options: [.duckOthers])
+            try audioSession.setActive(true)
+            print("✅ Audio session switched back to PLAYBACK mode")
+        } catch {
+            print("❌ Failed to switch audio session: \(error)")
+        }
+        
+        // Small delay before notifying (gives audio session time to switch)
+        let finalTranscript = transcript
+        if !finalTranscript.isEmpty {
+            print("✅ User finished speaking: '\(finalTranscript)'")
+            // Delay callback slightly to ensure audio session is ready
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                self.onUserFinishedSpeaking?(finalTranscript)
+            }
         }
     }
     

@@ -270,7 +270,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = RedLyt/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Areeg;
+				INFOPLIST_KEY_CFBundleDisplayName = Redlyt;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.entertainment";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "We need your location to calculate drive time";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "We need microphone access so you can talk to the AI podcast host while driving.\nWe need microphone access so you can talk to the AI podcast host while driving.\nWe need microphone access so you can talk to the AI podcast host while driving.";
@@ -310,7 +310,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = RedLyt/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Areeg;
+				INFOPLIST_KEY_CFBundleDisplayName = Redlyt;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.entertainment";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "We need your location to calculate drive time";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "We need microphone access so you can talk to the AI podcast host while driving.\nWe need microphone access so you can talk to the AI podcast host while driving.\nWe need microphone access so you can talk to the AI podcast host while driving.";

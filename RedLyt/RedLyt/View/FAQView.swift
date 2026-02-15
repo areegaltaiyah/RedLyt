@@ -2,7 +2,6 @@ import SwiftUI
 
 struct FAQView : View {
     @Environment(\.dismiss) private var dismiss
-    
     var body: some View {
         NavigationStack {
             // --- Your content started here ---
@@ -45,6 +44,7 @@ struct FAQView : View {
             
             
         }
+        
     }
 }
 

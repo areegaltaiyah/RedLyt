@@ -6,6 +6,7 @@
 //
 
 import Foundation
+
 enum Prompts {
     
     static let podcastHostBase = """
@@ -67,6 +68,7 @@ enum Prompts {
         -React only if ai asked a question and the user answered
         - Add something fun / engaging
         - Ask a new option-based question only when timing rules allow
-        """
+        
+"""
     
 }
