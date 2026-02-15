@@ -10,88 +10,144 @@ struct PodcastHostView: View {
     
     var body: some View {
         NavigationStack {
-            ZStack {
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color("Upper color").opacity(0.31),
-                        Color.redlyteBg
-                    ]),
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
-                
-                VStack(spacing: 0) {
-                    Spacer()
+            GeometryReader { geometry in
+                ZStack {
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            Color("Upper color").opacity(0.31),
+                            Color.redlyteBg
+                        ]),
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .ignoresSafeArea()
                     
-                    // العداد 7 دقائق
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("7")
-                            .font(.largeTitle.weight(.bold).width(.expanded))
-                            .dynamicTypeSize(.large ... .accessibility3)
-                            .minimumScaleFactor(0.9)
-                        Text("Minutes")
-                            .font(.largeTitle.weight(.bold).width(.expanded))
-                            .dynamicTypeSize(.large ... .accessibility3)
-                            .minimumScaleFactor(0.9)
-                        Text("left!")
-                            .font(.largeTitle.weight(.bold).width(.expanded))
-                            .dynamicTypeSize(.large ... .accessibility3)
-                            .minimumScaleFactor(0.9)
-                    }
-                    .scaleEffect(sizeCategory.isAccessibilityCategory ? 1.0 : 1.06)
-                    .foregroundColor(.primary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 40)
-                    
-                    Spacer()
-                    
-                    // Audio Visualization
-                    ZStack {
-                        HStack(spacing: 4) {
-                            Spacer()
-                            ForEach(0..<8) { i in
-                                AudioBar(height: getHeight(i), level: userAudioLevel)
-                            }
-                        }
-                        .frame(width: 120)
-                        .offset(x: -140)
+                    VStack(spacing: 0) {
+                        Spacer()
                         
-                        AIOrb(level: aiAudioLevel)
-                        
-                        HStack(spacing: 4) {
-                            ForEach(0..<8) { i in
-                                AudioBar(height: getHeight(i), level: userAudioLevel)
-                            }
-                            Spacer()
+                        // العداد 7 دقائق
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("7")
+                                .font(.largeTitle.weight(.bold).width(.expanded))
+                                .dynamicTypeSize(.large ... .accessibility3)
+                                .minimumScaleFactor(0.9)
+                            Text("Minutes")
+                                .font(.largeTitle.weight(.bold).width(.expanded))
+                                .dynamicTypeSize(.large ... .accessibility3)
+                                .minimumScaleFactor(0.9)
+                            Text("left!")
+                                .font(.largeTitle.weight(.bold).width(.expanded))
+                                .dynamicTypeSize(.large ... .accessibility3)
+                                .minimumScaleFactor(0.9)
                         }
-                        .frame(width: 120)
-                        .offset(x: 140)
-                    }
-                    .frame(height: 400)
-                    
-                    Spacer()
-                    
-                    // زر المايك
-                    Button {
-                        isRecording.toggle()
-                    } label: {
+                        .scaleEffect(sizeCategory.isAccessibilityCategory ? 1.0 : 1.06)
+                        .foregroundColor(.primary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 40)
+                        
+                        Spacer()
+                        
+                        // Audio Visualization
                         ZStack {
-                            Circle()
-                                .fill(isRecording ? Color.red.opacity(0.5) : Color("MicColor").opacity(0.5))
-                                .frame(width: 70, height: 70)
-                            Image(systemName: isRecording ? "stop.fill" : "mic.fill")
-                                .font(.title2)
-                                .foregroundColor(.white)
+                            HStack(spacing: 4) {
+                                Spacer()
+                                ForEach(0..<8) { i in
+                                    AudioBar(height: getHeight(i), level: userAudioLevel)
+                                }
+                            }
+                            .frame(width: 120)
+                            .offset(x: -140)
+                            
+                            AIOrb(level: aiAudioLevel)
+                            
+                            HStack(spacing: 4) {
+                                ForEach(0..<8) { i in
+                                    AudioBar(height: getHeight(i), level: userAudioLevel)
+                                }
+                                Spacer()
+                            }
+                            .frame(width: 120)
+                            .offset(x: 140)
                         }
+                        .frame(height: 400)
+                        
+                        Spacer()
+                        
+                        // زر المايك - ثابت تماماً
+                        Button {
+                            // Haptic feedback
+                            let impact = UIImpactFeedbackGenerator(style: .medium)
+                            impact.impactOccurred()
+                            
+                            isRecording.toggle()
+                            
+                            if isRecording {
+                                startListening()
+                            }
+                        } label: {
+                            ZStack {
+                                // الحدود الخارجية
+                                Circle()
+                                    .strokeBorder(
+                                        LinearGradient(
+                                            colors: isRecording ?
+                                                [Color.red.opacity(0.8), Color.red.opacity(0.4)] :
+                                                [Color("MicColor").opacity(0.8), Color("MicColor").opacity(0.4)],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        ),
+                                        lineWidth: 3
+                                    )
+                                    .frame(width: 76, height: 76)
+                                    .blur(radius: 0.5)
+                                
+                                // الدائرة الرئيسية
+                                Circle()
+                                    .fill(
+                                        RadialGradient(
+                                            colors: isRecording ?
+                                                [Color.red.opacity(0.7), Color.red.opacity(0.5)] :
+                                                [Color("MicColor").opacity(0.7), Color("MicColor").opacity(0.5)],
+                                            center: .center,
+                                            startRadius: 0,
+                                            endRadius: 35
+                                        )
+                                    )
+                                    .frame(width: 70, height: 70)
+                                    .shadow(
+                                        color: isRecording ? .red.opacity(0.5) : Color("MicColor").opacity(0.3),
+                                        radius: 10,
+                                        x: 0,
+                                        y: 5
+                                    )
+                                
+                                // الأيقونة
+                                Image(systemName: isRecording ? "waveform" : "mic.fill")
+                                    .font(.system(size: 28, weight: .semibold))
+                                    .foregroundStyle(
+                                        LinearGradient(
+                                            colors: [.white, .white.opacity(0.9)],
+                                            startPoint: .top,
+                                            endPoint: .bottom
+                                        )
+                                    )
+                                    .symbolEffect(
+                                        .variableColor.iterative.reversing,
+                                        options: .repeating,
+                                        isActive: isRecording
+                                    )
+                            }
+                        }
+                        .buttonStyle(MicButtonStyle(isRecording: isRecording))
+                        .frame(height: 70)
+                        
+                        Spacer()
+                            .frame(height: 60)
                     }
-                    .scaleEffect(isRecording ? 1.1 : 1.0)
-                    .animation(.easeInOut(duration: 0.2), value: isRecording)
-                    
-                    Spacer()
-                        .frame(height: 60)
+                    .frame(width: geometry.size.width, height: geometry.size.height)
                 }
             }
+            .ignoresSafeArea(.keyboard)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
@@ -118,6 +174,7 @@ struct PodcastHostView: View {
                 }
             }
         }
+        .scrollDisabled(true)
     }
     
     // MARK: - Logic
@@ -256,7 +313,6 @@ struct PodcastHostView: View {
         }
     }
     
-    
     func callGeminiTest() async {
         isLoading = true
         let service = GeminiService()
@@ -279,6 +335,18 @@ struct PodcastHostView: View {
     func startListening() {
         isRecording = true
         print("🎤 Mic is now listening...")
+    }
+}
+
+// Custom Button Style للمايك
+struct MicButtonStyle: ButtonStyle {
+    let isRecording: Bool
+    
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+            .brightness(configuration.isPressed ? -0.1 : 0)
+            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
     }
 }
 

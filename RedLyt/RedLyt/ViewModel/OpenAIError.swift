@@ -39,7 +39,7 @@ final class OpenAIService {
         request.httpMethod = "POST"
         request.httpBody = json
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(ApiKeys.openAI)", forHTTPHeaderField: "Authorization")
+    request.setValue("Bearer \(ApiKeys.openAI)", forHTTPHeaderField: "Authorization")
         
         let (data, response) = try await URLSession.shared.data(for: request)
         
