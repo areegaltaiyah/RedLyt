@@ -194,7 +194,7 @@ class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegate {
         
         await MainActor.run {
             // Use YOUR existing SpeechManager
-            speechManager?.speak(text, language: "en-US")
+            speechManager?.speak(text)
         }
     }
     

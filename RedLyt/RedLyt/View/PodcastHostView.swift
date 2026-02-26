@@ -14,8 +14,6 @@ struct PodcastHostView: View {
     @StateObject private var speechManager = SpeechManager()
     @StateObject private var speechRecognizer = SpeechRecognizer()
     
-   
-    
     var body: some View {
         NavigationStack {
             ZStack {
@@ -32,24 +30,11 @@ struct PodcastHostView: View {
                 VStack(spacing: 0) {
                     Spacer()
                     
-                    VStack(alignment: .leading, spacing: 8) {
-//                        //Text("7")
-//                            .font(.largeTitle.weight(.bold).width(.expanded))
-//                            .dynamicTypeSize(.large ... .accessibility3)
-//                            .minimumScaleFactor(0.9)
-//                        Text("Minutes")
-//                            .font(.largeTitle.weight(.bold).width(.expanded))
-//                            .dynamicTypeSize(.large ... .accessibility3)
-//                            .minimumScaleFactor(0.9)
-//                        Text("left!")
-//                            .font(.largeTitle.weight(.bold).width(.expanded))
-//                            .dynamicTypeSize(.large ... .accessibility3)
-//                            .minimumScaleFactor(0.9)
-                    }
-                    .scaleEffect(sizeCategory.isAccessibilityCategory ? 1.0 : 1.06)
-                    .foregroundColor(.primary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 40)
+                    VStack(alignment: .leading, spacing: 8) {}
+                        .scaleEffect(sizeCategory.isAccessibilityCategory ? 1.0 : 1.06)
+                        .foregroundColor(.primary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 40)
                     
                     Spacer()
                     
@@ -100,7 +85,7 @@ struct PodcastHostView: View {
                             .font(.caption)
                             .foregroundColor(.green)
                     }
-    
+                    
                     ZStack {
                         Circle()
                             .fill(getIndicatorColor())
@@ -212,7 +197,7 @@ struct PodcastHostView: View {
         speechRecognizer.onUserFinishedSpeaking = { [self] userText in
             guard !userText.isEmpty else {
                 if isConversationActive {
-                    startListeningWithDelay(delay: 1.5)
+                    startListeningWithDelay(delay: 0.3)
                 }
                 return
             }
@@ -228,9 +213,9 @@ struct PodcastHostView: View {
     
     func setupSpeechManagerCallbacks() {
         speechManager.onFinishedSpeaking = { [self] in
-            print("✅ AI finished speaking - will start listening in 1 second")
+            print("✅ AI finished speaking - starting listening")
             if isConversationActive {
-                startListeningWithDelay(delay: 1.0)
+                startListeningWithDelay(delay: 0.3)
             }
         }
     }
@@ -240,7 +225,7 @@ struct PodcastHostView: View {
         
         if isConversationActive {
             print("▶️ Conversation resumed")
-            startListeningWithDelay(delay: 0.5)
+            startListeningWithDelay(delay: 0.3)
         } else {
             print("⏸️ Conversation paused")
             speechRecognizer.stopListening()
@@ -249,7 +234,7 @@ struct PodcastHostView: View {
         }
     }
     
-    func startListeningWithDelay(delay: TimeInterval = 1.0) {
+    func startListeningWithDelay(delay: TimeInterval = 0.3) {
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
             guard isConversationActive && !isLoading && !speechManager.isSpeaking else {
                 print("⏭️ Skipping auto-listen: active=\(isConversationActive) loading=\(isLoading) speaking=\(speechManager.isSpeaking)")
@@ -319,9 +304,6 @@ struct PodcastHostView: View {
             
         } catch {
             print("❌ OpenAI error details:", error)
-            print("❌ Error type:", type(of: error))
-            print("❌ Error description:", error.localizedDescription)
-            
             errorMessage = """
             Connection failed: \(error.localizedDescription)
             
@@ -351,10 +333,6 @@ struct PodcastHostView: View {
             
             print("✅ AI Reply:", result)
             conversationHistory.append(Message(role: "assistant", content: result))
-            
-            // CRITICAL: Add delay before speaking to ensure audio session has switched
-            try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
-            
             await speakAIResponse(result)
             
         } catch {
@@ -363,7 +341,7 @@ struct PodcastHostView: View {
             showError = true
             
             if isConversationActive {
-                startListeningWithDelay(delay: 2.0)
+                startListeningWithDelay(delay: 0.3)
             }
         }
     }
@@ -371,7 +349,7 @@ struct PodcastHostView: View {
     func speakAIResponse(_ text: String) async {
         print("🔊 About to speak: '\(text)'")
         await MainActor.run {
-            speechManager.speak(text, language: "en-US")
+            speechManager.speak(text)
         }
     }
     

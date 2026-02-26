@@ -7,101 +7,138 @@ import Foundation
 import AVFoundation
 import Combine
 
-final class SpeechManager: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
+final class SpeechManager: NSObject, ObservableObject {
 
-    private let synth = AVSpeechSynthesizer()
+    // MARK: - Config
+    private let voice = "nova"      // Options: alloy, echo, fable, onyx, nova, shimmer
+    private let model = "tts-1" // Use "tts-1" to halve cost, quality is still great
+
+    // MARK: - State
     @Published var isSpeaking = false
-    
-    // Callback when AI finishes speaking
-    var onFinishedSpeaking: (() -> Void)?
-    
-    // Track if speech was interrupted vs naturally finished
-    private var wasInterrupted = false
 
-    override init() {
-        super.init()
-        synth.delegate = self
+    /// Called when the AI finishes speaking naturally (not when stopped manually)
+    var onFinishedSpeaking: (() -> Void)?
+
+    // MARK: - Private
+    private var audioPlayer: AVAudioPlayer?
+    private var wasStopped = false
+    private var currentTask: URLSessionDataTask?
+
+    // MARK: - Public API
+
+    func speak(_ text: String) {
+        // Stop any current audio WITHOUT marking wasStopped = true
+        stopCurrentAudio()
+
+        // Now reset the flag so new speech can complete normally
+        wasStopped = false
+
+        guard let apiKey = ApiKeys.openAI else {
+            print("❌ SpeechManager: missing OpenAI API key, aborting TTS")
+            return
+        }
+
+        DispatchQueue.main.async { self.isSpeaking = true }
+        print("🔊 SpeechManager: requesting TTS for '\(text.prefix(60))...'")
+
+        guard let url = URL(string: "https://api.openai.com/v1/audio/speech") else { return }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let body: [String: Any] = [
+            "model": model,
+            "input": text,
+            "voice": voice,
+            "response_format": "mp3"
+        ]
+
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+
+        currentTask = URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            guard let self else { return }
+
+            if let error {
+                print("❌ OpenAI TTS error: \(error)")
+                DispatchQueue.main.async { self.isSpeaking = false }
+                return
+            }
+
+            guard let data, !data.isEmpty else {
+                print("❌ OpenAI TTS: empty response")
+                DispatchQueue.main.async { self.isSpeaking = false }
+                return
+            }
+
+            guard !self.wasStopped else {
+                print("⏭️ SpeechManager: stopped before audio arrived, skipping playback")
+                DispatchQueue.main.async { self.isSpeaking = false }
+                return
+            }
+
+            self.playAudio(data: data)
+        }
+
+        currentTask?.resume()
     }
 
-    func speak(_ text: String, language: String = "en-US") {
-        // CRITICAL: Set isSpeaking IMMEDIATELY, before doing anything else
-        DispatchQueue.main.async {
-            self.isSpeaking = true
-        }
-        
-        print("🔊 SpeechManager.speak() called with: '\(text)'")
-        
-        // Stop any existing speech
-        if synth.isSpeaking {
-            print("⚠️ Already speaking - stopping current speech")
-            wasInterrupted = true  // Mark as interrupted
-            synth.stopSpeaking(at: .immediate)
-            // Give it a tiny moment to stop
-            Thread.sleep(forTimeInterval: 0.1)
-        }
-        
-        // Configure audio session for playback
+    func stop() {
+        print("🛑 SpeechManager: stopped by user")
+        wasStopped = true
+        stopCurrentAudio()
+        DispatchQueue.main.async { self.isSpeaking = false }
+    }
+
+    // MARK: - Private
+
+    /// Stops any in-flight request and audio WITHOUT touching wasStopped
+    private func stopCurrentAudio() {
+        currentTask?.cancel()
+        currentTask = nil
+        audioPlayer?.stop()
+        audioPlayer = nil
+    }
+
+    private func playAudio(data: Data) {
         do {
             let session = AVAudioSession.sharedInstance()
             try session.setCategory(.playback, mode: .spokenAudio, options: [.duckOthers])
             try session.setActive(true)
-            print("✅ Audio session configured for playback")
-        } catch {
-            print("❌ Failed to configure audio session: \(error)")
-        }
 
-        let u = AVSpeechUtterance(string: text)
-        u.voice = AVSpeechSynthesisVoice(language: language)
-        u.rate = 0.48
-        u.volume = 1.0
-        
-        wasInterrupted = false  // Reset interrupt flag
-        synth.speak(u)
-        print("🔊 Speech utterance queued")
-    }
-    
-    func stop() {
-        print("🛑 SpeechManager.stop() called")
-        wasInterrupted = true  // Mark as interrupted
-        synth.stopSpeaking(at: .immediate)
-        DispatchQueue.main.async {
-            self.isSpeaking = false
+            audioPlayer = try AVAudioPlayer(data: data, fileTypeHint: AVFileType.mp3.rawValue)
+            audioPlayer?.delegate = self
+            audioPlayer?.prepareToPlay()
+            audioPlayer?.play()
+
+            print("▶️ SpeechManager: playing OpenAI TTS audio")
+        } catch {
+            print("❌ SpeechManager: failed to play audio - \(error)")
+            DispatchQueue.main.async { self.isSpeaking = false }
         }
     }
-    
-    // MARK: - AVSpeechSynthesizerDelegate
-    
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didStart utterance: AVSpeechUtterance) {
-        print("🔊 Speech ACTUALLY started")
-        DispatchQueue.main.async {
-            self.isSpeaking = true
+}
+
+// MARK: - AVAudioPlayerDelegate
+
+extension SpeechManager: AVAudioPlayerDelegate {
+
+    func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        print("✅ SpeechManager: audio finished (success: \(flag), wasStopped: \(wasStopped))")
+        DispatchQueue.main.async { self.isSpeaking = false }
+
+        guard flag && !wasStopped else { return }
+
+        print("✅ SpeechManager: triggering onFinishedSpeaking callback")
+        // Minimal delay just to let audio session settle
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            self.onFinishedSpeaking?()
         }
     }
-    
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
-        print("✅ Speech finished (wasInterrupted: \(wasInterrupted))")
-        
-        DispatchQueue.main.async {
-            self.isSpeaking = false
-        }
-        
-        // Only trigger callback if speech finished naturally (not interrupted)
-        if !wasInterrupted {
-            print("✅ Speech finished naturally - triggering callback")
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                self.onFinishedSpeaking?()
-            }
-        } else {
-            print("⏭️ Speech was interrupted - NOT triggering callback")
-            wasInterrupted = false  // Reset for next time
-        }
-    }
-    
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
-        print("❌ Speech was cancelled")
-        DispatchQueue.main.async {
-            self.isSpeaking = false
-        }
-        wasInterrupted = false  // Reset
+
+    func audioPlayerDecodeErrorDidOccur(_ player: AVAudioPlayer, error: Error?) {
+        print("❌ SpeechManager: decode error - \(String(describing: error))")
+        DispatchQueue.main.async { self.isSpeaking = false }
     }
 }
