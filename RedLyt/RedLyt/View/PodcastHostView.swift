@@ -28,16 +28,8 @@ struct PodcastHostView: View {
                 .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    Spacer()
                     
-                    VStack(alignment: .leading, spacing: 8) {}
-                        .scaleEffect(sizeCategory.isAccessibilityCategory ? 1.0 : 1.06)
-                        .foregroundColor(.primary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 40)
-                    
-                    Spacer()
-                    
+                    // ← الأورب ثابتة في المنتصف
                     ZStack {
                         HStack(spacing: 4) {
                             Spacer()
@@ -59,48 +51,56 @@ struct PodcastHostView: View {
                         .frame(width: 120)
                         .offset(x: 140)
                     }
-                    .frame(height: 400)
+                    .frame(maxHeight: .infinity)
                     
-                    Spacer()
-                    
-                    if isLoading {
-                        Text("AI is thinking...")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    } else if speechRecognizer.isListening {
-                        VStack(spacing: 4) {
-                            Text("Listening...")
-                                .font(.caption)
-                                .foregroundColor(.blue)
-                            if !speechRecognizer.transcript.isEmpty {
-                                Text(speechRecognizer.transcript)
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
-                                    .multilineTextAlignment(.center)
-                                    .padding(.horizontal)
-                            }
-                            Spacer()
-                        }
-                    } else if speechManager.isSpeaking {
-                        Text("AI is speaking...")
-                            .font(.caption)
-                            .foregroundColor(.green)
-                    }
-                    Spacer()
-                    ZStack {
-                        Circle()
-                            .fill(getIndicatorColor())
-                            .frame(width: 70, height: 70)
-                        
+                    // ← نص الحالة بارتفاع ثابت حتى لا يحرك باقي العناصر
+                    Group {
                         if isLoading {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            Text("AI is thinking...")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        } else if speechRecognizer.isListening {
+                            VStack(spacing: 4) {
+                                Text("Listening...")
+                                    .font(.caption)
+                                    .foregroundColor(.blue)
+                                if !speechRecognizer.transcript.isEmpty {
+                                    Text(speechRecognizer.transcript)
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                        .multilineTextAlignment(.center)
+                                        .padding(.horizontal)
+                                }
+                            }
+                        } else if speechManager.isSpeaking {
+                            Text("AI is speaking...")
+                                .font(.caption)
+                                .foregroundColor(.green)
                         } else {
-                            Image(systemName: getIndicatorIcon())
-                                .font(.title2)
-                                .foregroundColor(.white)
+                            Text(" ") // ← placeholder يحافظ على الارتفاع
+                                .font(.caption)
                         }
-                        Spacer()
+                    }
+                    .frame(height: 40) // ← ارتفاع ثابت دائماً
+                    
+                    // ← زر المايك
+                    Button {
+                        toggleConversation()
+                    } label: {
+                        ZStack {
+                            Circle()
+                                .fill(getIndicatorColor())
+                                .frame(width: 70, height: 70)
+                            
+                            if isLoading {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            } else {
+                                Image(systemName: getIndicatorIcon())
+                                    .font(.title2)
+                                    .foregroundColor(.white)
+                            }
+                        }
                     }
                     .scaleEffect(isRecording ? 1.1 : 1.0)
                     .animation(.easeInOut(duration: 0.2), value: isRecording)
@@ -117,22 +117,6 @@ struct PodcastHostView: View {
                                 value: isRecording
                             )
                     )
-                    
-                    Button {
-                        toggleConversation()
-                    } label: {
-                        HStack {
-                            Image(systemName: isConversationActive ? "pause.circle.fill" : "play.circle.fill")
-                            Text(isConversationActive ? "Pause Conversation" : "Resume Conversation")
-                        }
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .padding(.vertical, 8)
-                        .padding(.horizontal, 16)
-                        .background(Color.primary.opacity(0.1))
-                        .cornerRadius(20)
-                    }
-                    .padding(.top, 8)
                     
                     Spacer()
                         .frame(height: 60)
@@ -176,6 +160,8 @@ struct PodcastHostView: View {
     func getIndicatorColor() -> Color {
         if isLoading {
             return Color.orange.opacity(0.5)
+        } else if !isConversationActive {
+            return Color.red.opacity(0.5)
         } else if isRecording {
             return Color.blue.opacity(0.5)
         } else if speechManager.isSpeaking {
@@ -186,7 +172,9 @@ struct PodcastHostView: View {
     }
     
     func getIndicatorIcon() -> String {
-        if isRecording {
+        if !isConversationActive {
+            return "play.fill"
+        } else if isRecording {
             return "waveform"
         } else if speechManager.isSpeaking {
             return "speaker.wave.3.fill"
@@ -355,7 +343,6 @@ struct PodcastHostView: View {
         }
     }
     
-    // ← كود زميلتك بدون أي تغيير
     struct AIOrb: View {
         let level: CGFloat
         let isThinking: Bool
@@ -564,7 +551,6 @@ struct PodcastHostView: View {
         }
     }
     
-    // ← كودي: الخطوط تتحرك فقط مع صوت اليوزر
     struct AudioBar: View {
         let height: CGFloat
         let level: CGFloat
