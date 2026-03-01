@@ -42,7 +42,7 @@ struct PodcastHostView: View {
                         HStack(spacing: 4) {
                             Spacer()
                             ForEach(0..<8) { i in
-                                AudioBar(height: getHeight(i), level: userAudioLevel)
+                                AudioBar(height: getHeight(i), level: speechRecognizer.audioLevel, isActive: isRecording)
                             }
                         }
                         .frame(width: 120)
@@ -52,7 +52,7 @@ struct PodcastHostView: View {
                         
                         HStack(spacing: 4) {
                             ForEach(0..<8) { i in
-                                AudioBar(height: getHeight(i), level: userAudioLevel)
+                                AudioBar(height: getHeight(i), level: speechRecognizer.audioLevel, isActive: isRecording)
                             }
                             Spacer()
                         }
@@ -79,13 +79,14 @@ struct PodcastHostView: View {
                                     .multilineTextAlignment(.center)
                                     .padding(.horizontal)
                             }
+                            Spacer()
                         }
                     } else if speechManager.isSpeaking {
                         Text("AI is speaking...")
                             .font(.caption)
                             .foregroundColor(.green)
                     }
-                    
+                    Spacer()
                     ZStack {
                         Circle()
                             .fill(getIndicatorColor())
@@ -99,6 +100,7 @@ struct PodcastHostView: View {
                                 .font(.title2)
                                 .foregroundColor(.white)
                         }
+                        Spacer()
                     }
                     .scaleEffect(isRecording ? 1.1 : 1.0)
                     .animation(.easeInOut(duration: 0.2), value: isRecording)
@@ -353,11 +355,17 @@ struct PodcastHostView: View {
         }
     }
     
+    // ← كود زميلتك بدون أي تغيير
     struct AIOrb: View {
         let level: CGFloat
         let isThinking: Bool
         @State private var pulse = false
         @State private var shimmer = false
+        @State private var rotate = false
+        @State private var ripple1 = false
+        @State private var ripple2 = false
+        @State private var ripple3 = false
+        @State private var morph = false
         
         var body: some View {
             ZStack {
@@ -376,41 +384,122 @@ struct PodcastHostView: View {
                     .frame(width: 281, height: 408)
                     .blur(radius: 40)
                 
-                ZStack {
-                    Circle()
-                        .fill(
-                            RadialGradient(
-                                colors: [
-                                    Color("Bubble").opacity(0.6),
-                                    Color("Bubble").opacity(0.4),
-                                    Color("Bubble").opacity(0.2)
-                                ],
-                                center: .center,
-                                startRadius: 0,
-                                endRadius: 77
-                            )
+                Circle()
+                    .strokeBorder(Color("Bubble").opacity(ripple3 ? 0.0 : 0.3), lineWidth: 1.5)
+                    .frame(width: ripple3 ? 280 : 160, height: ripple3 ? 280 : 160)
+                    .blur(radius: 2)
+                    .animation(
+                        .easeOut(duration: 2.4).repeatForever(autoreverses: false).delay(0.8),
+                        value: ripple3
+                    )
+                
+                Circle()
+                    .strokeBorder(Color("Bubble").opacity(ripple2 ? 0.0 : 0.45), lineWidth: 1.5)
+                    .frame(width: ripple2 ? 240 : 160, height: ripple2 ? 240 : 160)
+                    .blur(radius: 1.5)
+                    .animation(
+                        .easeOut(duration: 2.0).repeatForever(autoreverses: false).delay(0.4),
+                        value: ripple2
+                    )
+                
+                Circle()
+                    .strokeBorder(Color("Bubble").opacity(ripple1 ? 0.0 : 0.6), lineWidth: 2)
+                    .frame(width: ripple1 ? 200 : 160, height: ripple1 ? 200 : 160)
+                    .blur(radius: 1)
+                    .animation(
+                        .easeOut(duration: 1.6).repeatForever(autoreverses: false),
+                        value: ripple1
+                    )
+                
+                Circle()
+                    .strokeBorder(
+                        AngularGradient(
+                            colors: [
+                                Color("Bubble").opacity(0.0),
+                                Color("Bubble").opacity(0.7),
+                                Color.white.opacity(0.4),
+                                Color("Bubble").opacity(0.5),
+                                Color("Bubble").opacity(0.0)
+                            ],
+                            center: .center
+                        ),
+                        lineWidth: 3
+                    )
+                    .frame(width: 162, height: 162)
+                    .rotationEffect(.degrees(rotate ? 360 : 0))
+                    .animation(
+                        .linear(duration: 4.0).repeatForever(autoreverses: false),
+                        value: rotate
+                    )
+                    .blur(radius: 2)
+                
+                Ellipse()
+                    .fill(
+                        RadialGradient(
+                            colors: [
+                                Color("Bubble").opacity(0.75),
+                                Color("Bubble").opacity(0.5),
+                                Color("Bubble").opacity(0.2)
+                            ],
+                            center: .center,
+                            startRadius: 0,
+                            endRadius: 77
                         )
-                        .frame(width: 154 + level * 20, height: 154 + level * 20)
-                    
-                    Circle()
-                        .strokeBorder(
-                            LinearGradient(
-                                colors: [
-                                    Color("Bubble").opacity(0.8),
-                                    Color("Bubble").opacity(0.4),
-                                    Color("Bubble").opacity(0.6)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 2
+                    )
+                    .frame(
+                        width: (154 + level * 20) * (morph ? 1.06 : 0.96),
+                        height: (154 + level * 20) * (morph ? 0.96 : 1.06)
+                    )
+                    .animation(
+                        .easeInOut(duration: 2.2).repeatForever(autoreverses: true),
+                        value: morph
+                    )
+                    .blur(radius: 8)
+                    .opacity(isThinking ? 0.5 : 1.0)
+                    .animation(.easeInOut(duration: 0.5), value: isThinking)
+                
+                Ellipse()
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [
+                                Color("Bubble").opacity(0.8),
+                                Color("Bubble").opacity(0.4),
+                                Color("Bubble").opacity(0.6)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 2
+                    )
+                    .frame(
+                        width: (154 + level * 20) * (morph ? 1.06 : 0.96),
+                        height: (154 + level * 20) * (morph ? 0.96 : 1.06)
+                    )
+                    .animation(
+                        .easeInOut(duration: 2.2).repeatForever(autoreverses: true),
+                        value: morph
+                    )
+                    .blur(radius: 1)
+                
+                Circle()
+                    .fill(
+                        AngularGradient(
+                            colors: [
+                                Color.white.opacity(0.0),
+                                Color.white.opacity(0.15),
+                                Color.white.opacity(0.0),
+                                Color.white.opacity(0.0)
+                            ],
+                            center: .center
                         )
-                        .frame(width: 154 + level * 20, height: 154 + level * 20)
-                        .blur(radius: 1)
-                }
-                .blur(radius: 8)
-                .opacity(isThinking ? 0.5 : 1.0)
-                .animation(.easeInOut(duration: 0.5), value: isThinking)
+                    )
+                    .frame(width: 140, height: 140)
+                    .rotationEffect(.degrees(rotate ? -360 : 0))
+                    .animation(
+                        .linear(duration: 6.0).repeatForever(autoreverses: false),
+                        value: rotate
+                    )
+                    .blur(radius: 4)
                 
                 Circle()
                     .fill(
@@ -428,7 +517,11 @@ struct PodcastHostView: View {
                     .frame(width: 80, height: 80)
                     .offset(x: -30, y: -30)
                     .blur(radius: 8)
-                    .opacity(shimmer ? 0.8 : 0.5)
+                    .opacity(shimmer ? 0.9 : 0.4)
+                    .animation(
+                        .easeInOut(duration: 1.8).repeatForever(autoreverses: true),
+                        value: shimmer
+                    )
                 
                 Circle()
                     .fill(
@@ -445,7 +538,11 @@ struct PodcastHostView: View {
                     .frame(width: 50, height: 50)
                     .offset(x: 40, y: -15)
                     .blur(radius: 6)
-                    .opacity(shimmer ? 0.6 : 0.3)
+                    .opacity(shimmer ? 0.7 : 0.25)
+                    .animation(
+                        .easeInOut(duration: 2.3).repeatForever(autoreverses: true).delay(0.5),
+                        value: shimmer
+                    )
                 
                 if isThinking {
                     ProgressView()
@@ -455,35 +552,44 @@ struct PodcastHostView: View {
             }
             .scaleEffect(pulse ? 1.05 : 1.0)
             .animation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true), value: pulse)
-            .animation(.easeInOut(duration: 1.8).repeatForever(autoreverses: true), value: shimmer)
             .onAppear {
                 pulse = true
                 shimmer = true
+                rotate = true
+                morph = true
+                ripple1 = true
+                ripple2 = true
+                ripple3 = true
             }
         }
     }
     
+    // ← كودي: الخطوط تتحرك فقط مع صوت اليوزر
     struct AudioBar: View {
         let height: CGFloat
         let level: CGFloat
+        let isActive: Bool
         @State private var currentHeight: CGFloat = 4
-        
+
         var body: some View {
             RoundedRectangle(cornerRadius: 2)
                 .fill(Color(red: 0.3, green: 0.5, blue: 0.9))
                 .frame(width: 3, height: currentHeight)
-                .onAppear {
-                    animate()
+                .onChange(of: level) { newLevel in
+                    guard isActive else { return }
+                    withAnimation(.easeInOut(duration: 0.1)) {
+                        currentHeight = newLevel > 0.02
+                            ? max(4, height * newLevel * CGFloat.random(in: 0.5...1.0))
+                            : 4
+                    }
                 }
-        }
-        
-        func animate() {
-            withAnimation(.easeInOut(duration: 0.15)) {
-                currentHeight = 4 + (height * level)
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + Double.random(in: 0.1...0.3)) {
-                animate()
-            }
+                .onChange(of: isActive) { active in
+                    if !active {
+                        withAnimation(.easeOut(duration: 0.3)) {
+                            currentHeight = 4
+                        }
+                    }
+                }
         }
     }
 }

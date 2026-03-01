@@ -15,6 +15,7 @@ final class SpeechRecognizer: NSObject, ObservableObject {
     // MARK: - Published Properties
     @Published var transcript: String = ""
     @Published var isListening: Bool = false
+    @Published var audioLevel: CGFloat = 0  // ← مستوى صوت الميكروفون الحي
     
     // MARK: - Private Properties
     private let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
@@ -126,7 +127,20 @@ final class SpeechRecognizer: NSObject, ObservableObject {
         
         do {
             try inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] buffer, _ in
-                self?.recognitionRequest?.append(buffer)
+                guard let self = self else { return }
+                
+                // إرسال البيانات للـ speech recognition
+                self.recognitionRequest?.append(buffer)
+                
+                // ← حساب مستوى الصوت من الميكروفون
+                guard let channelData = buffer.floatChannelData?[0] else { return }
+                let frameLength = Int(buffer.frameLength)
+                let rms = sqrt((0..<frameLength).map { pow(channelData[$0], 2) }.reduce(0, +) / Float(frameLength))
+                let level = CGFloat(min(rms * 20, 1.0))
+                
+                DispatchQueue.main.async {
+                    self.audioLevel = level
+                }
             }
         } catch {
             print("❌ Failed to install audio tap: \(error)")
@@ -167,6 +181,7 @@ final class SpeechRecognizer: NSObject, ObservableObject {
         recognitionTask = nil
         
         isListening = false
+        audioLevel = 0  // ← إعادة الخطوط للصفر عند التوقف
         
         // CRITICAL: Switch audio session back to PLAYBACK mode
         do {
