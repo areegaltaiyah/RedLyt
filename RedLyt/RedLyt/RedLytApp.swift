@@ -7,7 +7,7 @@ struct RedLytApp: App {
     
     var body: some Scene {
         WindowGroup {
-            PodcastHostView()
+            RootView()
         }
     }
 }

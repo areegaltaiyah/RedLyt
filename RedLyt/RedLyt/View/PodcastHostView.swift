@@ -256,7 +256,7 @@ struct PodcastHostView: View {
         
         let service = OpenAIService()
         let systemPrompt = Prompts.podcastHostBase
-        let userPrompt = "Start the show with a short, friendly greeting to the driver. Keep it under 20 words."
+        let userPrompt = "Begin."
         
         do {
             let result = try await service.generateReply(
@@ -538,7 +538,7 @@ struct PodcastHostView: View {
                 }
             }
             .scaleEffect(pulse ? 1.05 : 1.0)
-            .animation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true), value: pulse)
+          //  .animation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true), value: pulse)
             .onAppear {
                 pulse = true
                 shimmer = true

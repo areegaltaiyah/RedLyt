@@ -68,7 +68,7 @@ struct SplashSc: View {
                             Image("C")
                                 .resizable()
                                 .scaledToFit()
-                                .frame(width: 160,height: 200)
+                                .frame(width: 190,height: 200)
                                 .offset(x: 130, y: -60)
                         }
                     }
