@@ -187,7 +187,7 @@ struct PodcastHostView: View {
         speechRecognizer.onUserFinishedSpeaking = { [self] userText in
             guard !userText.isEmpty else {
                 if isConversationActive {
-                    startListeningWithDelay(delay: 0.3)
+                    startListeningWithDelay()
                 }
                 return
             }
@@ -205,7 +205,7 @@ struct PodcastHostView: View {
         speechManager.onFinishedSpeaking = { [self] in
             print("✅ AI finished speaking - starting listening")
             if isConversationActive {
-                startListeningWithDelay(delay: 0.3)
+                startListeningWithDelay()
             }
         }
     }
@@ -215,7 +215,7 @@ struct PodcastHostView: View {
         
         if isConversationActive {
             print("▶️ Conversation resumed")
-            startListeningWithDelay(delay: 0.3)
+            startListeningWithDelay()
         } else {
             print("⏸️ Conversation paused")
             speechRecognizer.stopListening()
@@ -224,8 +224,8 @@ struct PodcastHostView: View {
         }
     }
     
-    func startListeningWithDelay(delay: TimeInterval = 0.3) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+    func startListeningWithDelay() {
+        DispatchQueue.main.asyncAfter(deadline: .now()) {
             guard isConversationActive && !isLoading && !speechManager.isSpeaking else {
                 print("⏭️ Skipping auto-listen: active=\(isConversationActive) loading=\(isLoading) speaking=\(speechManager.isSpeaking)")
                 return
@@ -331,7 +331,7 @@ struct PodcastHostView: View {
             showError = true
             
             if isConversationActive {
-                startListeningWithDelay(delay: 0.3)
+                startListeningWithDelay()
             }
         }
     }
